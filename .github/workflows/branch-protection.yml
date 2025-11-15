@@ -1,0 +1,26 @@
+name: Branch Protection Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-main-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if push to main is from authorized user
+        run: |
+          if [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            AUTHORIZED_USER="kevas007"
+            ACTOR="${{ github.actor }}"
+            if [ "$ACTOR" != "$AUTHORIZED_USER" ]; then
+              echo "❌ Erreur: Seul $AUTHORIZED_USER peut pousser directement sur main"
+              echo "Veuillez créer une pull request depuis la branche dev"
+              exit 1
+            fi
+          fi
+

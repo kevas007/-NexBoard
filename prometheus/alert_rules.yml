@@ -1,0 +1,47 @@
+# Règles d'alerte Prometheus pour Proxmox Dashboard
+# Ces règles définissent les conditions d'alerte basées sur les métriques collectées
+
+groups:
+  - name: proxmox_dash_alerts
+    interval: 30s
+    rules:
+      # Alerte pour utilisation CPU élevée
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Utilisation CPU élevée sur {{ $labels.instance }}"
+          description: "L'utilisation CPU est de {{ $value }}% sur {{ $labels.instance }}"
+
+      # Alerte pour utilisation mémoire élevée
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Utilisation mémoire élevée sur {{ $labels.instance }}"
+          description: "L'utilisation mémoire est de {{ $value }}% sur {{ $labels.instance }}"
+
+      # Alerte pour espace disque faible
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Espace disque faible sur {{ $labels.instance }}"
+          description: "Il reste seulement {{ $value }}% d'espace disque sur {{ $labels.instance }}"
+
+      # Alerte pour service down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} est down"
+          description: "Le service {{ $labels.job }} sur {{ $labels.instance }} est inaccessible depuis 2 minutes"
+

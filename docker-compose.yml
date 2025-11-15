@@ -1,0 +1,62 @@
+# Ce fichier est un alias vers docker-compose.prod.yml
+# Pour le développement, utilisez: docker-compose -f docker-compose.dev.yml
+# Pour la production, utilisez: docker-compose -f docker-compose.prod.yml
+# Ou utilisez le Makefile: make dev ou make prod
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    env_file:
+      - config.env
+    environment:
+      - ENV=production
+      - NODE_ENV=production
+    depends_on:
+      - mailhog
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    env_file:
+      - config.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "8025:8025"   # UI web
+      - "1025:1025"   # SMTP
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8025"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  data:

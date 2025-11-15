@@ -1,0 +1,68 @@
+stages:
+  - check
+  - build
+  - test
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+
+# Vérifier que main est protégée
+check_main_branch:
+  stage: check
+  only:
+    - main
+  script:
+    - |
+      if [ "$CI_COMMIT_REF_NAME" == "main" ] && [ "$CI_COMMIT_AUTHOR" != "kevas007" ]; then
+        echo "❌ Erreur: Seul kevas007 peut pousser directement sur main"
+        echo "Veuillez créer une merge request depuis la branche dev"
+        exit 1
+      fi
+  allow_failure: false
+
+# Build des images Docker
+build_backend:
+  stage: build
+  only:
+    - dev
+    - main
+  script:
+    - docker-compose -f docker-compose.dev.yml build backend
+  tags:
+    - docker
+
+build_frontend:
+  stage: build
+  only:
+    - dev
+    - main
+  script:
+    - docker-compose -f docker-compose.dev.yml build web
+  tags:
+    - docker
+
+# Tests
+test_backend:
+  stage: test
+  only:
+    - dev
+    - main
+  script:
+    - cd backend
+    - go test ./...
+  tags:
+    - docker
+
+test_frontend:
+  stage: test
+  only:
+    - dev
+    - main
+  script:
+    - cd frontend
+    - npm ci
+    - npm run test
+  tags:
+    - docker
+
