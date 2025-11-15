@@ -1,0 +1,90 @@
+# Configuration Prometheus pour Proxmox Dashboard
+# Ce fichier configure Prometheus pour collecter les métriques de monitoring
+
+global:
+  # Intervalle par défaut pour le scraping (15 secondes)
+  scrape_interval: 15s
+  
+  # Intervalle par défaut pour l'évaluation des règles (15 secondes)
+  evaluation_interval: 15s
+  
+  # Timeout par défaut pour les requêtes de scraping (10 secondes)
+  scrape_timeout: 10s
+  
+  # Label externe pour identifier cette instance Prometheus
+  external_labels:
+    cluster: 'proxmox-dash'
+    environment: 'production'
+
+# Configuration des alertes (optionnel)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           # - alertmanager:9093
+
+# Fichiers de règles de chargement
+rule_files:
+  - "alert_rules.yml"
+
+# Configuration des jobs de scraping
+scrape_configs:
+  # Job pour Prometheus lui-même (auto-monitoring)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'prometheus'
+          service: 'monitoring'
+
+  # Job pour node_exporter (métriques système)
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['node_exporter:9100']
+        labels:
+          instance: 'node'
+          service: 'system'
+
+  # Job pour les métriques Proxmox (si vous avez un exporter Proxmox)
+  # - job_name: 'proxmox'
+  #   static_configs:
+  #     - targets: ['proxmox-exporter:9221']
+  #       labels:
+  #         instance: 'proxmox'
+  #         service: 'virtualization'
+  #   scrape_interval: 30s
+  #   metrics_path: '/pve'
+
+  # Job pour les applications surveillées (via le dashboard)
+  # Les applications seront configurées dynamiquement via l'interface
+  # Note: En Docker, utilisez 'api:8080' (nom du service), en local utilisez 'localhost:8081'
+  - job_name: 'proxmox-dash-apps'
+    static_configs:
+      - targets: ['api:8080']  # Nom du service Docker (ou localhost:8081 en local)
+        labels:
+          instance: 'proxmox-dash-api'
+          service: 'dashboard'
+    metrics_path: '/api/v1/metrics'
+    scrape_interval: 30s
+
+  # Job pour les métriques Docker (si docker-exporter est disponible)
+  # - job_name: 'docker'
+  #   static_configs:
+  #     - targets: ['docker-exporter:9323']
+  #       labels:
+  #         instance: 'docker'
+  #         service: 'containers'
+
+  # Job pour les métriques cAdvisor (métriques de conteneurs)
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+  #       labels:
+  #         instance: 'cadvisor'
+  #         service: 'containers'
+  #   metrics_path: '/metrics'
+
+# Configuration pour la découverte de services (optionnel)
+# Consultez la documentation Prometheus pour la découverte de services
+# https://prometheus.io/docs/prometheus/latest/configuration/configuration/#scrape_config
+

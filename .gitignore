@@ -1,0 +1,72 @@
+# Docker
+*.log
+.dockerignore
+
+# Data
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+config.env
+!.env.example
+!config.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+tmp/
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test results
+test-results/
+coverage/
+*.coverage
+*.lcov
+
+# Go
+*.test
+*.out
+vendor/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Frontend build
+frontend/dist/
+frontend/.vite/
+frontend/test-results/
+frontend/coverage/
+frontend/playwright-report/
+frontend/.vitest/
+
+# Backend
+backend/tmp/
+backend/bin/
+backend/data/
+backend/main
+backend/*.test
+backend/*.out
+backend/coverage.*
+backend/.air.toml

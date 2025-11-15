@@ -1,0 +1,20 @@
+# Fichiers à ignorer par Jenkins
+node_modules/
+dist/
+bin/
+*.log
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.local
+.DS_Store
+coverage/
+test-results/
+.git/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+

@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary-50: 240 253 250;
+    --color-primary-100: 204 251 241;
+    --color-primary-200: 153 246 228;
+    --color-primary-300: 94 234 212;
+    --color-primary-400: 45 212 191;
+    --color-primary-500: 15 181 179;
+    --color-primary-600: 15 181 179;
+    --color-primary-700: 10 143 140;
+    --color-primary-800: 10 143 140;
+    --color-primary-900: 10 143 140;
+    --color-primary-950: 10 143 140;
+    --color-accent-500: 255 138 29;
+    --color-accent-600: 255 138 29;
+    --color-accent-700: 224 111 0;
+    --color-ink: 14 31 40;
+    --color-surface: 248 250 252;
+    --color-muted: 95 107 118;
+    --color-border: 229 231 235;
+  }
+
+  * {
+    @apply border-slate-200 dark:border-slate-800;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100 dark:bg-slate-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-500;
+  }
+
+  /* Focus styles */
+  .focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900;
+  }
+
+  /* Animation utilities */
+  .animate-in {
+    animation: animate-in 0.2s ease-out;
+  }
+
+  .animate-out {
+    animation: animate-out 0.2s ease-in;
+  }
+
+  @keyframes animate-in {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes animate-out {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply animate-spin rounded-full border-2 border-slate-300 border-t-primary-600;
+  }
+
+  /* Code blocks */
+  code {
+    @apply bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+
+  pre code {
+    @apply bg-transparent p-0;
+  }
+
+  /* Tables */
+  table {
+    @apply w-full border-collapse;
+  }
+
+  th {
+    @apply bg-slate-50 dark:bg-slate-800 px-4 py-2 text-left font-medium text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700;
+  }
+
+  td {
+    @apply px-4 py-2 border-b border-slate-200 dark:border-slate-700;
+  }
+
+  /* Form elements */
+  input[type="checkbox"] {
+    @apply w-4 h-4 text-primary-600 bg-white border-slate-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600;
+  }
+
+  input[type="radio"] {
+    @apply w-4 h-4 text-primary-600 bg-white border-slate-300 focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600;
+  }
+}

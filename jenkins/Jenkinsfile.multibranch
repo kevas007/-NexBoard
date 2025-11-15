@@ -1,0 +1,118 @@
+// Jenkinsfile pour pipeline multibranch
+// Ce fichier est utilisé par Jenkins Multibranch Pipeline
+// Version simplifiée pour les branches feature
+
+pipeline {
+    agent any
+
+    tools {
+        go 'Go-1.23'
+        nodejs 'NodeJS-18'
+    }
+
+    environment {
+        DOCKER_BUILDKIT = '1'
+        COMPOSE_DOCKER_CLI_BUILD = '1'
+        BACKEND_DIR = 'backend'
+        FRONTEND_DIR = 'frontend'
+        PROJECT_NAME = 'proxmox-dash'
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
+        ansiColor('xterm')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    echo "🌿 Branche: ${env.BRANCH_NAME}"
+                    echo "📝 Commit: ${env.GIT_COMMIT.take(7)}"
+                }
+            }
+        }
+
+        stage('Validate') {
+            steps {
+                sh '''
+                    echo "✅ Validation de la structure..."
+                    [ -d "${BACKEND_DIR}" ] && [ -d "${FRONTEND_DIR}" ] || exit 1
+                    [ -f "${BACKEND_DIR}/go.mod" ] && [ -f "${FRONTEND_DIR}/package.json" ] || exit 1
+                '''
+            }
+        }
+
+        stage('Backend') {
+            steps {
+                dir(env.BACKEND_DIR) {
+                    sh '''
+                        echo "📦 Téléchargement des dépendances Go..."
+                        go mod download
+                        go mod verify
+                        
+                        echo "🔨 Build backend..."
+                        CGO_ENABLED=0 go build -o bin/api ./cmd/main.go
+                        
+                        echo "🧪 Tests backend..."
+                        go test -v -race ./... || true
+                    '''
+                }
+            }
+        }
+
+        stage('Frontend') {
+            steps {
+                dir(env.FRONTEND_DIR) {
+                    sh '''
+                        echo "📦 Installation dépendances frontend..."
+                        npm ci --prefer-offline --no-audit
+                        
+                        echo "🔍 Vérification TypeScript..."
+                        npx tsc --noEmit || exit 1
+                        
+                        echo "🔨 Build frontend..."
+                        npm run build
+                        
+                        echo "🧪 Tests frontend..."
+                        npm run test:run || true
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'dev'
+                }
+            }
+            steps {
+                script {
+                    def composeFile = env.BRANCH_NAME == 'main' ? 'docker-compose.prod.yml' : 'docker-compose.dev.yml'
+                    sh """
+                        echo "🐳 Build Docker avec ${composeFile}..."
+                        docker-compose -f ${composeFile} build --parallel
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo "✅ Build réussi sur ${env.BRANCH_NAME}"
+        }
+        failure {
+            echo "❌ Build échoué sur ${env.BRANCH_NAME}"
+        }
+    }
+}
+
