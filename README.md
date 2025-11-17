@@ -42,7 +42,8 @@ nexboard/
 │   └── tests/            # Tests E2E (Playwright)
 ├── tests/                # Tests centralisés
 │   ├── backend/          # Tests backend Go
-│   └── frontend/         # Config tests frontend
+│   ├── frontend/         # Config tests frontend
+│   └── README.md         # Documentation des tests
 ├── scripts/              # Scripts utilitaires
 ├── docs/                 # Documentation
 ├── jenkins/              # Configuration CI/CD
@@ -84,7 +85,7 @@ Le projet inclut une configuration CI/CD complète avec Jenkins :
 1. **Cloner le projet**
 ```bash
 git clone https://github.com/kevas007/NexBoard.git
-cd nexboard
+cd NexBoard
 ```
 
 **Note pour les contributeurs** : Si vous souhaitez contribuer au projet, veuillez :
@@ -197,6 +198,44 @@ npm install
 npm run dev
 ```
 
+### Tests
+
+#### Tests Backend
+
+Les tests backend sont dans `tests/backend/` et utilisent le package `backend_test` :
+
+```bash
+# Tous les tests backend
+cd tests/backend && go test ./...
+
+# Tests avec couverture
+cd tests/backend && go test -cover ./...
+
+# Tests spécifiques
+cd tests/backend && go test -run TestStore
+cd tests/backend && go test -run TestModels
+```
+
+**Note importante** : Tous les fichiers de test dans `tests/backend/` doivent utiliser `package backend_test` pour éviter les conflits avec le package `backend` du code source.
+
+#### Tests Frontend
+
+```bash
+# Tous les tests frontend
+cd frontend && npm run test:run
+
+# Tests en mode watch
+cd frontend && npm run test
+
+# Tests avec couverture
+cd frontend && npm run test:coverage
+
+# Interface de test
+cd frontend && npm run test:ui
+```
+
+📚 **Documentation complète des tests** : [tests/README.md](tests/README.md)
+
 ### Base de données
 
 Les migrations SQLite s'exécutent automatiquement au démarrage. Structure :
@@ -287,7 +326,7 @@ Nous accueillons les contributions ! Voir notre [Guide de Contribution](CONTRIBU
 2. **Clone votre fork** :
    ```bash
    git clone https://github.com/VOTRE-USERNAME/NexBoard.git
-   cd nexboard
+   cd NexBoard
    ```
 3. **Créer une branche** :
    ```bash
