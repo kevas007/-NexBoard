@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"proxmox-dashboard/internal/models"
-	"proxmox-dashboard/internal/store"
+	"nexboard/internal/models"
+	"nexboard/internal/store"
 )
 
 // AlertService gère la logique métier des alertes

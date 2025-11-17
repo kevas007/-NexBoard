@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"proxmox-dashboard/internal/models"
+	"nexboard/internal/models"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -66,11 +66,11 @@ func seedUsers(db *sql.DB) error {
 		password string
 		role     string
 	}{
-		{"admin", "admin@proxmox-dash.local", "admin123", "admin"},
-		{"user", "user@proxmox-dash.local", "user123", "user"},
-		{"viewer", "viewer@proxmox-dash.local", "viewer123", "viewer"},
-		{"ops", "ops@proxmox-dash.local", "ops123", "user"},
-		{"guest", "guest@proxmox-dash.local", "guest123", "guest"},
+		{"admin", "admin@nexboard.local", "admin123", "admin"},
+		{"user", "user@nexboard.local", "user123", "user"},
+		{"viewer", "viewer@nexboard.local", "viewer123", "viewer"},
+		{"ops", "ops@nexboard.local", "ops123", "user"},
+		{"guest", "guest@nexboard.local", "guest123", "guest"},
 	}
 
 	for _, u := range users {
@@ -390,12 +390,12 @@ func seedNotificationSubscriptions(db *sql.DB) error {
 	}{
 		{
 			channel:  "email",
-			endpoint: "admin@proxmox-dash.local",
+			endpoint: "admin@nexboard.local",
 			enabled:  true,
 		},
 		{
 			channel:  "email",
-			endpoint: "alerts@proxmox-dash.local",
+			endpoint: "alerts@nexboard.local",
 			enabled:  true,
 		},
 		{
@@ -445,19 +445,19 @@ func seedEmailQueue(db *sql.DB) error {
 		state    string
 	}{
 		{
-			toAddr:   "admin@proxmox-dash.local",
+			toAddr:   "admin@nexboard.local",
 			subject:  "Bienvenue sur ProxmoxDash",
 			bodyText: "Bienvenue sur ProxmoxDash! Votre dashboard est maintenant configuré.",
 			state:    "sent",
 		},
 		{
-			toAddr:   "alerts@proxmox-dash.local",
+			toAddr:   "alerts@nexboard.local",
 			subject:  "Alerte: Nœud hors ligne",
 			bodyText: "Le nœud pve-02 est hors ligne depuis 5 minutes. Veuillez vérifier.",
 			state:    "pending",
 		},
 		{
-			toAddr:   "admin@proxmox-dash.local",
+			toAddr:   "admin@nexboard.local",
 			subject:  "Rapport quotidien - Cluster Proxmox",
 			bodyText: "Rapport quotidien du cluster Proxmox:\n- 3 nœuds en ligne\n- 12 VMs actives\n- 8 LXC en cours d'exécution",
 			state:    "pending",

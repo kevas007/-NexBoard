@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
-	"proxmox-dashboard/internal/models"
-	"proxmox-dashboard/internal/store"
+	"nexboard/internal/models"
+	"nexboard/internal/store"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -56,16 +56,19 @@ func (h *Handlers) CreateApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app := &models.App{
-		Name:       req.Name,
-		Protocol:   req.Protocol,
-		Host:       req.Host,
-		Port:       req.Port,
-		Path:       req.Path,
-		Tag:        req.Tag,
-		Icon:       req.Icon,
-		HealthPath: req.HealthPath,
-		HealthType: req.HealthType,
-		CreatedAt:  time.Now(),
+		Name:         req.Name,
+		Protocol:     req.Protocol,
+		Host:         req.Host,
+		Port:         req.Port,
+		Path:         req.Path,
+		Tag:          req.Tag,
+		Icon:         req.Icon,
+		HealthPath:   req.HealthPath,
+		HealthType:   req.HealthType,
+		ResourceType: req.ResourceType,
+		ResourceID:   req.ResourceID,
+		ResourceNode: req.ResourceNode,
+		CreatedAt:    time.Now(),
 	}
 
 	if err := app.Validate(); err != nil {
@@ -85,7 +88,7 @@ func (h *Handlers) CreateApp(w http.ResponseWriter, r *http.Request) {
 
 // UpdateApp met à jour une application
 func (h *Handlers) UpdateApp(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Path[len("/api/apps/"):]
+	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid app ID", http.StatusBadRequest)
@@ -108,7 +111,7 @@ func (h *Handlers) UpdateApp(w http.ResponseWriter, r *http.Request) {
 
 // DeleteApp supprime une application
 func (h *Handlers) DeleteApp(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Path[len("/api/apps/"):]
+	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid app ID", http.StatusBadRequest)
@@ -203,7 +206,33 @@ func (h *Handlers) CreateAlert(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(alert)
 }
 
-// GetHealth retourne le statut de santé de l'API
+// GetMetrics retourne les métriques de l'application au format Prometheus
+func (h *Handlers) GetMetrics(w http.ResponseWriter, r *http.Request) {
+	// Retourner des métriques au format Prometheus (format texte)
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+
+	// Métriques basiques de l'application
+	// Note: Ces métriques peuvent être enrichies avec des compteurs de requêtes, etc.
+	metrics := []string{
+		"# HELP proxmox_dash_info Information about Proxmox Dashboard",
+		"# TYPE proxmox_dash_info gauge",
+		"proxmox_dash_info{version=\"1.0.0\"} 1",
+		"",
+		"# HELP proxmox_dash_uptime_seconds Uptime of the application in seconds",
+		"# TYPE proxmox_dash_uptime_seconds counter",
+		fmt.Sprintf("proxmox_dash_uptime_seconds %d", time.Now().Unix()),
+		"",
+		"# HELP proxmox_dash_requests_total Total number of requests",
+		"# TYPE proxmox_dash_requests_total counter",
+		"proxmox_dash_requests_total 0",
+		"",
+	}
+
+	for _, metric := range metrics {
+		fmt.Fprintf(w, "%s\n", metric)
+	}
+}
+
 func (h *Handlers) GetHealth(w http.ResponseWriter, r *http.Request) {
 	health := map[string]interface{}{
 		"status":    "ok",
@@ -277,10 +306,18 @@ func (h *Handlers) GetHealthHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		status = "offline"
 		errorMsg = err.Error()
-		// Si c'est une erreur DNS, indiquer clairement
-		if strings.Contains(errorMsg, "no such host") || strings.Contains(errorMsg, "lookup") {
-			errorMsg = fmt.Sprintf("DNS resolution failed: %s. Consider using IP address instead of hostname.", host)
+
+		// Détecter et formater les différents types d'erreurs
+		if strings.Contains(errorMsg, "context deadline exceeded") || strings.Contains(errorMsg, "timeout") || strings.Contains(errorMsg, "Client.Timeout") {
+			errorMsg = "Timeout: Le service ne répond pas dans les 10 secondes. Le service peut être lent, surchargé ou indisponible. Vérifiez que le service est démarré et accessible."
+		} else if strings.Contains(errorMsg, "no such host") || strings.Contains(errorMsg, "lookup") || strings.Contains(errorMsg, "DNS") {
+			errorMsg = fmt.Sprintf("DNS resolution failed: %s. Utilisez une adresse IP au lieu du hostname, ou vérifiez votre configuration DNS.", host)
+		} else if strings.Contains(errorMsg, "connection refused") {
+			errorMsg = fmt.Sprintf("Connexion refusée: Le service n'écoute probablement pas sur le port %s. Vérifiez que le service est démarré.", parsedURL.Port())
+		} else if strings.Contains(errorMsg, "network is unreachable") {
+			errorMsg = fmt.Sprintf("Réseau inaccessible: Impossible d'atteindre %s. Vérifiez la connectivité réseau.", host)
 		}
+
 		result := map[string]interface{}{
 			"url":        urlStr,
 			"status":     status,
@@ -752,10 +789,15 @@ func (h *Handlers) FetchProxmoxData(w http.ResponseWriter, r *http.Request) {
 		}
 
 		statusCode := http.StatusOK
-		if strings.Contains(err.Error(), "401") {
+		errorMsg := err.Error()
+		if strings.Contains(errorMsg, "401") {
 			errorResponse["message"] = "Erreur d'authentification Proxmox: Vérifiez vos credentials (utilisateur et secret)"
-		} else if strings.Contains(err.Error(), "no such host") || strings.Contains(err.Error(), "lookup") {
+		} else if strings.Contains(errorMsg, "no such host") || strings.Contains(errorMsg, "lookup") {
 			errorResponse["message"] = "Impossible de se connecter au serveur Proxmox. Vérifiez l'URL et que le serveur est accessible."
+		} else if strings.Contains(errorMsg, "connection refused") || strings.Contains(errorMsg, "connect: connection refused") {
+			errorResponse["message"] = fmt.Sprintf("Connexion refusée au serveur Proxmox (%s). Le serveur n'est probablement pas démarré ou n'est pas accessible. Vérifiez que:\n- Le serveur Proxmox est démarré\n- L'URL est correcte (format: https://IP:8006)\n- Le port 8006 n'est pas bloqué par un firewall\n- Le serveur est accessible depuis le conteneur/hôte", config.URL)
+		} else if strings.Contains(errorMsg, "timeout") || strings.Contains(errorMsg, "deadline exceeded") {
+			errorResponse["message"] = "Timeout lors de la connexion au serveur Proxmox. Le serveur ne répond pas dans les délais. Vérifiez que le serveur est accessible et n'est pas surchargé."
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -871,6 +913,16 @@ func (h *Handlers) fetchProxmoxNodes(url, token string) ([]map[string]interface{
 	fmt.Println("🚀 Sending request...")
 	resp, err := client.Do(req)
 	if err != nil {
+		errorMsg := err.Error()
+		// Améliorer le message d'erreur pour "connection refused"
+		if strings.Contains(errorMsg, "connection refused") || strings.Contains(errorMsg, "connect: connection refused") {
+			fmt.Printf("❌ Request failed: Connexion refusée au serveur Proxmox (%s). Vérifiez que:\n", url)
+			fmt.Printf("   1. Le serveur Proxmox est démarré et accessible\n")
+			fmt.Printf("   2. L'URL est correcte (format: https://IP:8006)\n")
+			fmt.Printf("   3. Le port 8006 n'est pas bloqué par un firewall\n")
+			fmt.Printf("   4. Le serveur est accessible depuis le conteneur/hôte\n")
+			return nil, fmt.Errorf("connexion refusée au serveur Proxmox (%s). Le serveur n'est probablement pas démarré ou n'est pas accessible. Vérifiez l'URL et la connectivité réseau", url)
+		}
 		fmt.Printf("❌ Request failed: %v\n", err)
 		return nil, err
 	}
@@ -1078,6 +1130,16 @@ func (h *Handlers) fetchProxmoxVMs(url, token string) ([]map[string]interface{},
 			name, _ := item["name"].(string)
 			status, _ := item["status"].(string)
 
+			// Normaliser le statut : Proxmox peut retourner différents formats
+			statusLower := strings.ToLower(status)
+			if statusLower == "suspended" {
+				status = "suspended"
+			} else if statusLower == "stopped" {
+				status = "stopped"
+			} else if statusLower == "running" {
+				status = "running"
+			}
+
 			vm := map[string]interface{}{
 				"id":           int(vmid),
 				"vmid":         int(vmid),
@@ -1106,21 +1168,49 @@ func (h *Handlers) fetchProxmoxVMs(url, token string) ([]map[string]interface{},
 			}
 
 			// Récupérer les métriques en temps réel depuis status/current
-			if status == "running" {
-				statusURL := fmt.Sprintf("%s/api2/json/nodes/%s/qemu/%d/status/current", url, nodeName, int(vmid))
-				statusReq, err := http.NewRequest("GET", statusURL, nil)
-				if err == nil {
-					statusReq.Header.Set("Authorization", token)
-					statusReq.Header.Set("Content-Type", "application/json")
+			// Récupérer aussi le statut réel (important pour les VMs en pause)
+			statusURL := fmt.Sprintf("%s/api2/json/nodes/%s/qemu/%d/status/current", url, nodeName, int(vmid))
+			statusReq, err := http.NewRequest("GET", statusURL, nil)
+			if err == nil {
+				statusReq.Header.Set("Authorization", token)
+				statusReq.Header.Set("Content-Type", "application/json")
 
-					statusResp, err := client.Do(statusReq)
-					if err == nil && statusResp.StatusCode == 200 {
-						var statusResult struct {
-							Data map[string]interface{} `json:"data"`
+				statusResp, err := client.Do(statusReq)
+				if err == nil && statusResp.StatusCode == 200 {
+					var statusResult struct {
+						Data map[string]interface{} `json:"data"`
+					}
+					if err := json.NewDecoder(statusResp.Body).Decode(&statusResult); err == nil {
+						statusResp.Body.Close()
+
+						// Mettre à jour le statut réel depuis status/current (plus fiable)
+						if realStatus, ok := statusResult.Data["status"].(string); ok {
+							// Normaliser le statut
+							realStatusLower := strings.ToLower(realStatus)
+							initialStatusLower := strings.ToLower(status)
+
+							// Si le statut initial était "stopped" et que status/current retourne autre chose,
+							// garder "stopped" car c'est plus fiable pour les VMs arrêtées
+							if initialStatusLower == "stopped" && realStatusLower != "stopped" {
+								fmt.Printf("⚠️ VM %s (ID: %d) initial status was 'stopped' but status/current returned '%s', keeping 'stopped'\n", name, int(vmid), realStatus)
+								vm["status"] = "stopped"
+							} else {
+								// Sinon, utiliser le statut de status/current
+								if realStatusLower == "suspended" {
+									vm["status"] = "suspended"
+								} else if realStatusLower == "stopped" {
+									vm["status"] = "stopped"
+								} else if realStatusLower == "running" {
+									vm["status"] = "running"
+								} else {
+									vm["status"] = realStatus
+								}
+								fmt.Printf("📊 VM %s (ID: %d) status from status/current: %s\n", name, int(vmid), vm["status"])
+							}
 						}
-						if err := json.NewDecoder(statusResp.Body).Decode(&statusResult); err == nil {
-							statusResp.Body.Close()
 
+						// Récupérer les métriques seulement si la VM est running (les VMs en pause n'ont pas de métriques actives)
+						if vm["status"] == "running" {
 							// CPU usage (en pourcentage)
 							if cpu, ok := statusResult.Data["cpu"].(float64); ok {
 								vm["cpu_usage"] = cpu * 100
@@ -1148,19 +1238,52 @@ func (h *Handlers) fetchProxmoxVMs(url, token string) ([]map[string]interface{},
 							fmt.Printf("📊 VM %s metrics: CPU=%.2f%%, Memory=%.2f%%, Disk=%.2f%%, Uptime=%d\n",
 								name, vm["cpu_usage"], vm["memory_usage"], vm["disk_usage"], vm["uptime"])
 						} else {
-							if statusResp != nil {
-								statusResp.Body.Close()
-							}
+							// Pour les VMs en pause/stopped, garder les métriques à 0
+							fmt.Printf("📊 VM %s (ID: %d) is %s, skipping metrics\n", name, int(vmid), vm["status"])
 						}
 					} else {
 						if statusResp != nil {
 							statusResp.Body.Close()
 						}
-						fmt.Printf("⚠️ Failed to fetch metrics for VM %s (ID: %d): %v\n", name, int(vmid), err)
+					}
+				} else {
+					if statusResp != nil {
+						statusResp.Body.Close()
+					}
+					// Si status/current échoue, cela peut signifier que la VM est arrêtée
+					// Dans ce cas, le statut initial depuis la liste devrait être fiable
+					// Mais on log quand même l'erreur pour déboguer
+					if statusResp != nil && statusResp.StatusCode == 404 {
+						// 404 signifie probablement que la VM est arrêtée et status/current n'est pas disponible
+						fmt.Printf("ℹ️ VM %s (ID: %d) status/current returned 404, using initial status: %s (VM likely stopped)\n", name, int(vmid), status)
+						// S'assurer que le statut est bien "stopped" si c'était le statut initial
+						// Normaliser le statut pour être sûr
+						statusLower := strings.ToLower(status)
+						if statusLower == "stopped" {
+							vm["status"] = "stopped"
+						} else {
+							// Si le statut initial n'est pas "stopped" mais qu'on a un 404,
+							// c'est probablement une VM arrêtée
+							fmt.Printf("⚠️ VM %s (ID: %d) status/current 404 but initial status is %s, keeping initial status\n", name, int(vmid), status)
+						}
+					} else {
+						fmt.Printf("⚠️ Failed to fetch status for VM %s (ID: %d): %v, using initial status: %s\n", name, int(vmid), err, status)
+						// Normaliser le statut initial en cas d'erreur
+						statusLower := strings.ToLower(status)
+						if statusLower == "stopped" {
+							vm["status"] = "stopped"
+						} else if statusLower == "running" {
+							vm["status"] = "running"
+						} else if statusLower == "suspended" {
+							vm["status"] = "suspended"
+						}
 					}
 				}
+			}
 
-				// Essayer de récupérer l'IP via l'agent QEMU (si disponible)
+			// Essayer de récupérer l'IP via l'agent QEMU (si disponible)
+			// Seulement pour les VMs running (utiliser le statut mis à jour)
+			if vm["status"] == "running" {
 				agentURL := fmt.Sprintf("%s/api2/json/nodes/%s/qemu/%d/agent/network-get-interfaces", url, nodeName, int(vmid))
 				agentReq, err := http.NewRequest("GET", agentURL, nil)
 				if err == nil {
@@ -2052,7 +2175,10 @@ func (h *Handlers) fetchProxmoxNetworks(url, token, nodeName string) ([]map[stri
 			}
 		}
 		if !nodeExists {
-			return nil, fmt.Errorf("node %s not found", nodeName)
+			// Si le nœud n'existe pas, retourner une liste vide au lieu d'une erreur
+			// Cela permet de continuer sans les réseaux pour ce nœud
+			fmt.Printf("⚠️ Node %s not found, skipping network fetch for this node\n", nodeName)
+			return []map[string]interface{}{}, nil
 		}
 		nodesResult.Data = []map[string]interface{}{{"node": nodeName}}
 	}
@@ -2885,6 +3011,8 @@ func (h *Handlers) VMAction(w http.ResponseWriter, r *http.Request) {
 		actionPath = "reboot"
 	case "pause":
 		actionPath = "suspend"
+	case "resume":
+		actionPath = "resume"
 	default:
 		fmt.Printf("❌ VMAction: Action non supportée: %s\n", action)
 		w.Header().Set("Content-Type", "application/json")
@@ -2928,12 +3056,29 @@ func (h *Handlers) VMAction(w http.ResponseWriter, r *http.Request) {
 	// Exécuter la requête
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		fmt.Printf("❌ VM Action error: %v\n", err)
+		errorMsg := err.Error()
+		var userFriendlyError string
+
+		// Améliorer le message d'erreur selon le type
+		if strings.Contains(errorMsg, "connection refused") || strings.Contains(errorMsg, "connect: connection refused") {
+			userFriendlyError = fmt.Sprintf("Connexion refusée au serveur Proxmox (%s). Le serveur n'est probablement pas démarré ou n'est pas accessible. Vérifiez que:\n- Le serveur Proxmox est démarré\n- L'URL est correcte (format: https://IP:8006)\n- Le port 8006 n'est pas bloqué par un firewall\n- Le serveur est accessible depuis le conteneur/hôte", req.URL)
+			fmt.Printf("❌ VM Action error: Connexion refusée au serveur Proxmox (%s)\n", req.URL)
+		} else if strings.Contains(errorMsg, "no such host") || strings.Contains(errorMsg, "lookup") {
+			userFriendlyError = fmt.Sprintf("Impossible de résoudre le nom d'hôte pour %s. Vérifiez l'URL et que le serveur est accessible.", req.URL)
+			fmt.Printf("❌ VM Action error: Résolution DNS échouée pour %s\n", req.URL)
+		} else if strings.Contains(errorMsg, "timeout") || strings.Contains(errorMsg, "deadline exceeded") {
+			userFriendlyError = "Timeout lors de la connexion au serveur Proxmox. Le serveur ne répond pas dans les délais. Vérifiez que le serveur est accessible et n'est pas surchargé."
+			fmt.Printf("❌ VM Action error: Timeout lors de la connexion\n")
+		} else {
+			userFriendlyError = fmt.Sprintf("Erreur lors de l'exécution de l'action: %v", err)
+			fmt.Printf("❌ VM Action error: %v\n", err)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   fmt.Sprintf("Failed to execute action: %v", err),
+			"error":   userFriendlyError,
 		})
 		return
 	}
@@ -2950,13 +3095,141 @@ func (h *Handlers) VMAction(w http.ResponseWriter, r *http.Request) {
 
 	if resp.StatusCode != 200 {
 		fmt.Printf("❌ VM Action failed: %d - %s\n", resp.StatusCode, string(bodyBytes))
+
+		// Essayer d'extraire le message d'erreur de Proxmox
+		var errorMsg interface{} = responseData["data"]
+		if errorData, ok := responseData["data"].(map[string]interface{}); ok {
+			if msg, ok := errorData["message"].(string); ok {
+				errorMsg = msg
+			}
+		} else if errorStr, ok := responseData["data"].(string); ok {
+			errorMsg = errorStr
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.StatusCode)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error":   responseData["data"],
+			"error":   errorMsg,
 		})
 		return
+	}
+
+	// Extraire l'UPID de la réponse si disponible
+	var upid string
+	if dataStr, ok := responseData["data"].(string); ok && strings.HasPrefix(dataStr, "UPID:") {
+		upid = dataStr
+		fmt.Printf("📋 Task UPID received: %s\n", upid)
+
+		// Pour les actions asynchrones (suspend, resume, etc.), attendre que la tâche se termine
+		if action == "pause" || action == "resume" || action == "stop" || action == "start" {
+			fmt.Printf("⏳ Waiting for task %s to complete...\n", upid)
+			maxWaitTime := 60 * time.Second  // Maximum 60 secondes
+			checkInterval := 1 * time.Second // Vérifier toutes les secondes
+			startTime := time.Now()
+
+			taskCompleted := false
+			for time.Since(startTime) < maxWaitTime {
+				// Vérifier le statut de la tâche
+				taskStatus, err := h.checkTaskStatus(req.URL, token, upid)
+				if err != nil {
+					fmt.Printf("⚠️ Error checking task status: %v, will verify VM status instead\n", err)
+					// Si on ne peut pas vérifier la tâche, vérifier directement le statut de la VM
+					break
+				}
+
+				if taskStatus == "completed" {
+					fmt.Printf("✅ Task %s completed successfully\n", upid)
+					taskCompleted = true
+					break
+				} else if taskStatus == "failed" {
+					fmt.Printf("❌ Task %s failed\n", upid)
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusInternalServerError)
+					json.NewEncoder(w).Encode(map[string]interface{}{
+						"success": false,
+						"error":   "La tâche a échoué sur le serveur Proxmox",
+					})
+					return
+				}
+
+				// Attendre avant de vérifier à nouveau
+				time.Sleep(checkInterval)
+			}
+
+			// Si on n'a pas pu confirmer la tâche, vérifier directement le statut de la VM
+			if !taskCompleted {
+				fmt.Printf("ℹ️ Task status check inconclusive, verifying VM status directly\n")
+			}
+
+			// Vérifier le statut final de la VM pour confirmer l'action
+			if action == "pause" || action == "resume" || action == "stop" || action == "start" {
+				// Attendre plusieurs fois pour être sûr que le statut est mis à jour
+				maxRetries := 5
+				retryDelay := 1 * time.Second
+				statusConfirmed := false
+
+				for i := 0; i < maxRetries; i++ {
+					time.Sleep(retryDelay)
+					vmStatus, err := h.getVMStatus(req.URL, token, req.Node, req.VMID)
+					if err != nil {
+						fmt.Printf("⚠️ Failed to verify VM status (attempt %d/%d): %v\n", i+1, maxRetries, err)
+						continue
+					}
+
+					if action == "pause" {
+						// Proxmox retourne "suspended" pour les VMs en pause, pas "paused"
+						if vmStatus == "suspended" || vmStatus == "paused" {
+							fmt.Printf("✅ VM %d status confirmed as paused/suspended: %s (attempt %d/%d)\n", req.VMID, vmStatus, i+1, maxRetries)
+							statusConfirmed = true
+							break
+						} else {
+							fmt.Printf("⏳ VM %d status is %s (expected suspended/paused), waiting... (attempt %d/%d)\n", req.VMID, vmStatus, i+1, maxRetries)
+						}
+					} else if action == "resume" || action == "start" {
+						if vmStatus == "running" {
+							fmt.Printf("✅ VM %d status confirmed as running: %s (attempt %d/%d)\n", req.VMID, vmStatus, i+1, maxRetries)
+							statusConfirmed = true
+							break
+						} else {
+							fmt.Printf("⏳ VM %d status is %s (expected running), waiting... (attempt %d/%d)\n", req.VMID, vmStatus, i+1, maxRetries)
+						}
+					} else if action == "stop" {
+						// Proxmox retourne "stopped" pour les VMs arrêtées
+						if vmStatus == "stopped" {
+							fmt.Printf("✅ VM %d status confirmed as stopped: %s (attempt %d/%d)\n", req.VMID, vmStatus, i+1, maxRetries)
+							statusConfirmed = true
+							break
+						} else {
+							fmt.Printf("⏳ VM %d status is %s (expected stopped), waiting... (attempt %d/%d)\n", req.VMID, vmStatus, i+1, maxRetries)
+						}
+					}
+				}
+
+				if !statusConfirmed {
+					// Vérifier une dernière fois le statut
+					vmStatus, err := h.getVMStatus(req.URL, token, req.Node, req.VMID)
+					if err == nil {
+						if action == "pause" {
+							fmt.Printf("⚠️ VM %d final status check: %s (expected suspended/paused)\n", req.VMID, vmStatus)
+							if vmStatus != "suspended" && vmStatus != "paused" {
+								fmt.Printf("⚠️ Warning: VM %d status is %s but pause action was executed. The status may update shortly.\n", req.VMID, vmStatus)
+							}
+						} else if action == "stop" {
+							fmt.Printf("⚠️ VM %d final status check: %s (expected stopped)\n", req.VMID, vmStatus)
+							if vmStatus != "stopped" {
+								fmt.Printf("⚠️ Warning: VM %d status is %s but stop action was executed. The status may update shortly.\n", req.VMID, vmStatus)
+							}
+						} else if action == "start" || action == "resume" {
+							fmt.Printf("⚠️ VM %d final status check: %s (expected running)\n", req.VMID, vmStatus)
+							if vmStatus != "running" {
+								fmt.Printf("⚠️ Warning: VM %d status is %s but start/resume action was executed. The status may update shortly.\n", req.VMID, vmStatus)
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	fmt.Printf("✅ VM Action %s successful for VM %d\n", action, req.VMID)
@@ -2966,6 +3239,113 @@ func (h *Handlers) VMAction(w http.ResponseWriter, r *http.Request) {
 		"message": fmt.Sprintf("VM action %s executed successfully", action),
 		"data":    responseData["data"],
 	})
+}
+
+// checkTaskStatus vérifie le statut d'une tâche Proxmox par son UPID
+func (h *Handlers) checkTaskStatus(url, token, upid string) (string, error) {
+	// Utiliser l'endpoint cluster/tasks pour trouver la tâche
+	tasksURL := fmt.Sprintf("%s/api2/json/cluster/tasks", url)
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Timeout: 10 * time.Second, Transport: tr}
+
+	req, err := http.NewRequest("GET", tasksURL, nil)
+	if err != nil {
+		return "unknown", err
+	}
+
+	req.Header.Set("Authorization", token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "unknown", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		// Si l'endpoint n'est pas disponible, considérer comme "running" pour continuer
+		fmt.Printf("⚠️ Tasks API returned %d, assuming task is running\n", resp.StatusCode)
+		return "running", nil
+	}
+
+	var tasksResult struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&tasksResult); err != nil {
+		return "unknown", err
+	}
+
+	// Chercher la tâche avec cet UPID
+	for _, task := range tasksResult.Data {
+		if taskUPID, ok := task["upid"].(string); ok && taskUPID == upid {
+			status, _ := task["status"].(string)
+			fmt.Printf("🔍 Task %s status: %s\n", upid, status)
+
+			if status == "OK" {
+				return "completed", nil
+			} else if status == "running" {
+				return "running", nil
+			} else if status != "" {
+				// Vérifier s'il y a un message d'erreur
+				if exitstatus, ok := task["exitstatus"].(string); ok && exitstatus != "OK" {
+					fmt.Printf("❌ Task %s failed with exit status: %s\n", upid, exitstatus)
+					return "failed", nil
+				}
+				// Si le statut n'est ni OK ni running, mais pas d'erreur explicite, considérer comme running
+				return "running", nil
+			}
+			return "running", nil
+		}
+	}
+
+	// Si la tâche n'est pas trouvée dans la liste, elle est peut-être terminée et supprimée
+	// Dans ce cas, considérer comme completed
+	fmt.Printf("ℹ️ Task %s not found in tasks list, assuming completed\n", upid)
+	return "completed", nil
+}
+
+// getVMStatus récupère le statut actuel d'une VM
+func (h *Handlers) getVMStatus(url, token, nodeName string, vmid int) (string, error) {
+	statusURL := fmt.Sprintf("%s/api2/json/nodes/%s/qemu/%d/status/current", url, nodeName, vmid)
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Timeout: 10 * time.Second, Transport: tr}
+
+	req, err := http.NewRequest("GET", statusURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Authorization", token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("VM status API error: %d", resp.StatusCode)
+	}
+
+	var statusResult struct {
+		Data map[string]interface{} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&statusResult); err != nil {
+		return "", err
+	}
+
+	if status, ok := statusResult.Data["status"].(string); ok {
+		return status, nil
+	}
+
+	return "", fmt.Errorf("status not found in response")
 }
 
 // TestProxmoxPasswordRequest représente une requête pour tester le mot de passe Proxmox

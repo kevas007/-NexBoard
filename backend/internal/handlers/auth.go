@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"proxmox-dashboard/internal/auth"
-	"proxmox-dashboard/internal/middleware"
-	"proxmox-dashboard/internal/models"
+	"nexboard/internal/auth"
+	"nexboard/internal/middleware"
+	"nexboard/internal/models"
 
 	"github.com/go-chi/chi/v5"
 )

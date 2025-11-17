@@ -22,7 +22,7 @@ services:
       start_period: 5s
     restart: unless-stopped
     networks:
-      - proxmox-dash-network
+      - nexboard-network
 
   web:
     build:
@@ -44,7 +44,7 @@ services:
       start_period: 5s
     restart: unless-stopped
     networks:
-      - proxmox-dash-network
+      - nexboard-network
 
   mailhog:
     image: mailhog/mailhog:latest
@@ -58,7 +58,7 @@ services:
       retries: 3
     restart: unless-stopped
     networks:
-      - proxmox-dash-network
+      - nexboard-network
 
   prometheus:
     image: prom/prometheus:latest
@@ -77,7 +77,7 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - proxmox-dash-network
+      - nexboard-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
       interval: 30s
@@ -99,7 +99,7 @@ services:
     ports:
       - "9100:9100"
     networks:
-      - proxmox-dash-network
+      - nexboard-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9100/metrics"]
       interval: 30s
@@ -114,6 +114,6 @@ volumes:
     driver: local
 
 networks:
-  proxmox-dash-network:
+  nexboard-network:
     driver: bridge
 

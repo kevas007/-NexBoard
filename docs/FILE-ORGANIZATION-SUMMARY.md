@@ -128,8 +128,10 @@ make format
 - **Setup :** `tests/frontend/setup.ts`
 
 ### Backend
-- **Tests :** `tests/backend/`
+- **Tests :** `tests/backend/` (package `backend_test`)
 - **Config :** `tests/backend/test_config.go`
+- **Module :** `tests/backend/go.mod` (module `nexboard/tests`)
+- **Note :** Tous les fichiers de test doivent utiliser `package backend_test` pour éviter les conflits avec le package `backend` du code source
 
 ### Scripts
 - **Linux/macOS :** `Makefile`

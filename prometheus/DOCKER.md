@@ -71,7 +71,7 @@ Accédez à l'interface Prometheus :
 **Solution** :
 1. Vérifiez que tous les services sont sur le même réseau Docker :
    ```bash
-   docker network inspect proxmox-dash-network
+   docker network inspect nexboard-network
    ```
 2. Vérifiez que les services `api` et `web` sont bien dans le réseau :
    ```bash
@@ -181,10 +181,10 @@ Les services utilisent les variables suivantes (définies dans `config.env`) :
 Les données Prometheus sont stockées dans le volume `prometheus-data` :
 ```bash
 # Voir la taille du volume
-docker volume inspect proxmox-dash_prometheus-data
+docker volume inspect nexboard_prometheus-data
 
 # Supprimer les données (⚠️ attention)
-docker volume rm proxmox-dash_prometheus-data
+docker volume rm nexboard_prometheus-data
 ```
 
 ## Mise à jour

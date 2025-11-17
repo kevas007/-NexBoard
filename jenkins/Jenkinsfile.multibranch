@@ -15,7 +15,7 @@ pipeline {
         COMPOSE_DOCKER_CLI_BUILD = '1'
         BACKEND_DIR = 'backend'
         FRONTEND_DIR = 'frontend'
-        PROJECT_NAME = 'proxmox-dash'
+        PROJECT_NAME = 'nexboard'
     }
 
     options {

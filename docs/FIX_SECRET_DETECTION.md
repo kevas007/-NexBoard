@@ -41,7 +41,7 @@ Si c'est un faux positif (placeholder/example), vous pouvez autoriser le secret 
 
 1. **Aller sur l'URL fournie** :
    ```
-   https://github.com/kevas007/proxmox-dash/security/secret-scanning/unblock-secret/35XCHBGZIJ33xh9c16iQhRbUtLK
+   https://github.com/kevas007/NexBoard/security/secret-scanning/unblock-secret/35XCHBGZIJ33xh9c16iQhRbUtLK
    ```
 
 2. **Cliquer sur "Allow secret"** si c'est bien un placeholder

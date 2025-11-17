@@ -42,7 +42,7 @@ Le fichier `prometheus.yml` configure :
 - **Retention** : 30 jours
 - **Jobs configurés** :
   - `prometheus` : Auto-monitoring de Prometheus
-  - `proxmox-dash-apps` : Métriques de l'API du dashboard
+  - `nexboard-apps` : Métriques de l'API du dashboard
   - `node_exporter` : Métriques système (à décommenter si nécessaire)
 
 ### Personnalisation

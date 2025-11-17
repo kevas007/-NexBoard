@@ -57,7 +57,7 @@
 ## 📁 Structure Finale
 
 ```
-proxmox-dash/
+nexboard/
 ├── backend/
 │   ├── .dockerignore          # ✅ Nouveau
 │   └── ...

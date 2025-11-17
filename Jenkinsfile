@@ -5,7 +5,7 @@ pipeline {
         // Variables d'environnement
         DOCKER_REGISTRY = credentials('docker-registry-url') ?: ''
         IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
-        PROJECT_NAME = 'proxmox-dash'
+        PROJECT_NAME = 'nexboard'
         
         // Branches
         MAIN_BRANCH = 'main'

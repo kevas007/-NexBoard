@@ -20,11 +20,11 @@ L'environnement est déterminé par la variable d'environnement `ENV` ou `NODE_E
 
 | Username | Email | Password | Rôle |
 |----------|-------|----------|------|
-| admin | admin@proxmox-dash.local | admin123 | admin |
-| user | user@proxmox-dash.local | user123 | user |
-| viewer | viewer@proxmox-dash.local | viewer123 | viewer |
-| ops | ops@proxmox-dash.local | ops123 | user |
-| guest | guest@proxmox-dash.local | guest123 | guest |
+| admin | admin@nexboard.local | admin123 | admin |
+| user | user@nexboard.local | user123 | user |
+| viewer | viewer@nexboard.local | viewer123 | viewer |
+| ops | ops@nexboard.local | ops123 | user |
+| guest | guest@nexboard.local | guest123 | guest |
 
 ### Applications (13 applications)
 

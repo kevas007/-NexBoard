@@ -5,7 +5,7 @@ Ce document décrit la structure complète du projet et les conventions utilisé
 ## 📁 Structure Complète
 
 ```
-proxmox-dash/
+nexboard/
 ├── .github/                    # Configuration GitHub
 │   ├── workflows/              # GitHub Actions
 │   └── PULL_REQUEST_TEMPLATE.md
@@ -190,15 +190,15 @@ proxmox-dash/
 
 ### Structure
 
-- **Backend** : `tests/backend/` (tests d'intégration)
+- **Backend** : `tests/backend/` (tests d'intégration avec package `backend_test`)
 - **Frontend unitaires** : `frontend/src/test/` (tests unitaires)
 - **Frontend E2E** : `frontend/tests/e2e/` (tests Playwright)
 
 ### Exécution
 
 ```bash
-# Backend
-cd backend && go test ./...
+# Backend (depuis tests/backend)
+cd tests/backend && go test ./...
 
 # Frontend unitaires
 cd frontend && npm run test:run
@@ -207,12 +207,16 @@ cd frontend && npm run test:run
 cd frontend && npm run test:e2e
 ```
 
+### Note sur les tests backend
+
+Les tests backend utilisent le package `backend_test` pour éviter les conflits avec le package `backend` du code source. Tous les fichiers de test dans `tests/backend/` doivent utiliser `package backend_test`.
+
 ## 🐳 Docker
 
 ### Images
 
-- **Backend** : `proxmox-dash-api`
-- **Frontend** : `proxmox-dash-web`
+- **Backend** : `nexboard-api`
+- **Frontend** : `nexboard-web`
 - **Tags** : `latest`, `dev`, `prod`, `{BUILD_NUMBER}`
 
 ### Compose Files

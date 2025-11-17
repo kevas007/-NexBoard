@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"proxmox-dashboard/internal/auth"
-	"proxmox-dashboard/internal/models"
+	"nexboard/internal/auth"
+	"nexboard/internal/models"
 )
 
 // JWTAuthMiddleware vérifie l'authentification JWT

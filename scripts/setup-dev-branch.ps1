@@ -13,7 +13,7 @@ if (-not (Test-Path .git)) {
 $upstreamExists = git remote | Select-String -Pattern "upstream"
 if (-not $upstreamExists) {
     Write-Host "➕ Ajout du remote upstream..." -ForegroundColor Yellow
-    git remote add upstream https://github.com/kevas007/proxmox-dash.git
+    git remote add upstream https://github.com/kevas007/NexBoard.git
     Write-Host "✅ Remote upstream ajouté" -ForegroundColor Green
 } else {
     Write-Host "✅ Remote upstream existe déjà" -ForegroundColor Green

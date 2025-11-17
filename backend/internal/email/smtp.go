@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"proxmox-dashboard/internal/models"
-	"proxmox-dashboard/internal/store"
+	"nexboard/internal/models"
+	"nexboard/internal/store"
 )
 
 // Config contient la configuration SMTP

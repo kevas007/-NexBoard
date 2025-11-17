@@ -8,7 +8,7 @@ Merci de votre intérêt à contribuer à NexBoard ! Ce guide vous aidera à dé
 
 Si vous trouvez un bug, veuillez :
 
-1. **Vérifier** que le bug n'a pas déjà été signalé dans les [Issues](https://github.com/kevas007/nexboard/issues)
+1. **Vérifier** que le bug n'a pas déjà été signalé dans les [Issues](https://github.com/kevas007/NexBoard/issues)
 2. **Créer une nouvelle issue** avec le template "Bug Report"
 3. **Inclure** :
    - Description claire du problème
@@ -44,13 +44,13 @@ Si vous trouvez un bug, veuillez :
 1. **Fork** le repository
 2. **Clone** votre fork :
    ```bash
-   git clone https://github.com/VOTRE-USERNAME/proxmox-dash.git
-   cd proxmox-dash
+   git clone https://github.com/VOTRE-USERNAME/NexBoard.git
+   cd nexboard
    ```
 
 3. **Ajouter le remote upstream** :
    ```bash
-   git remote add upstream https://github.com/kevas007/proxmox-dash.git
+   git remote add upstream https://github.com/kevas007/NexBoard.git
    ```
 
 4. **Synchroniser avec upstream** :
@@ -258,8 +258,8 @@ npm run test:coverage
 
 ## 📞 Support
 
-- **Issues** : [GitHub Issues](https://github.com/kevas007/proxmox-dash/issues)
-- **Discussions** : [GitHub Discussions](https://github.com/kevas007/proxmox-dash/discussions)
+- **Issues** : [GitHub Issues](https://github.com/kevas007/NexBoard/issues)
+- **Discussions** : [GitHub Discussions](https://github.com/kevas007/NexBoard/discussions)
 - **Email** : [kevassiobo@gmail.com](mailto:kevassiobo@gmail.com)
 
 ## 🙏 Reconnaissance

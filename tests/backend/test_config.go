@@ -1,11 +1,11 @@
-package main
+package backend_test
 
 import (
 	"database/sql"
 	"os"
 	"testing"
 
-	"proxmox-dashboard/internal/store"
+	"nexboard/internal/store"
 
 	_ "modernc.org/sqlite"
 )
@@ -18,14 +18,14 @@ func setupTestDB(t *testing.T) *store.Store {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
 
-	store := store.NewStore(db)
+	testStore := store.NewStore(db)
 
 	// Exécuter les migrations
-	if err := store.Migrate(); err != nil {
+	if err := testStore.Migrate(); err != nil {
 		t.Fatalf("Failed to migrate test database: %v", err)
 	}
 
-	return store
+	return testStore
 }
 
 // setupTestEnv configure l'environnement de test

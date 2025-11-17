@@ -3,8 +3,8 @@ package routes
 import (
 	"net/http"
 
-	"proxmox-dashboard/internal/handlers"
-	"proxmox-dashboard/internal/sse"
+	"nexboard/internal/handlers"
+	"nexboard/internal/sse"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -31,6 +31,9 @@ func SetupRoutes(h *handlers.Handlers, hub *sse.Hub) *chi.Mux {
 
 	// Routes de santé
 	r.Get("/health", h.GetHealth)
+
+	// Métriques Prometheus
+	r.Get("/api/v1/metrics", h.GetMetrics)
 
 	// Route de compatibilité pour /api/apps (redirige vers /api/v1/apps)
 	r.Route("/api/apps", func(r chi.Router) {

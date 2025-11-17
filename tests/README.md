@@ -23,14 +23,20 @@ Les tests du backend sont organisés par module :
 ### Exécution
 
 ```bash
-# Tous les tests backend
-cd backend && go test ./...
+# Tous les tests backend (depuis tests/backend)
+cd tests/backend && go test ./...
+
+# Tests avec couverture
+cd tests/backend && go test -cover ./...
 
 # Tests spécifiques
-go test ./internal/models
-go test ./internal/store
-go test ./internal/handlers
+cd tests/backend && go test -run TestStore
+cd tests/backend && go test -run TestModels
 ```
+
+### Note importante
+
+Les tests backend utilisent le package `backend_test` pour éviter les conflits avec le package `backend` du code source. Tous les fichiers de test dans `tests/backend/` doivent utiliser `package backend_test`.
 
 ## Frontend Tests
 

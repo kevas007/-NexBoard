@@ -3,8 +3,9 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
-	"proxmox-dashboard/internal/models"
+	"nexboard/internal/models"
 
 	_ "modernc.org/sqlite"
 )
@@ -44,6 +45,28 @@ func (s *Store) Migrate() error {
 
 	if _, err := s.db.Exec(appsSQL); err != nil {
 		return fmt.Errorf("failed to create apps table: %w", err)
+	}
+
+	// Migration: Ajouter les colonnes de liaison aux ressources (si elles n'existent pas)
+	migrationSQL := []string{
+		"ALTER TABLE apps ADD COLUMN resource_type TEXT NULL;",
+		"ALTER TABLE apps ADD COLUMN resource_id TEXT NULL;",
+		"ALTER TABLE apps ADD COLUMN resource_node TEXT NULL;",
+	}
+
+	for _, sql := range migrationSQL {
+		// SQLite ne supporte pas "IF NOT EXISTS" pour ALTER TABLE ADD COLUMN
+		// On ignore les erreurs si la colonne existe déjà
+		_, err := s.db.Exec(sql)
+		if err != nil {
+			// Ignorer l'erreur si la colonne existe déjà (erreur: duplicate column name)
+			// C'est acceptable car cela signifie que la migration a déjà été exécutée
+			errMsg := err.Error()
+			if !strings.Contains(errMsg, "duplicate column") && !strings.Contains(errMsg, "already exists") {
+				// Log mais ne pas échouer si c'est juste que la colonne existe déjà
+				fmt.Printf("Migration note (peut être ignorée): %v\n", err)
+			}
+		}
 	}
 
 	// Créer la table alerts
@@ -183,11 +206,11 @@ func (s *Store) ClearDatabase() error {
 
 // CreateApp crée une nouvelle application
 func (s *Store) CreateApp(app *models.App) error {
-	query := `INSERT INTO apps (name, protocol, host, port, path, tag, icon, health_path, health_type, created_at)
-			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO apps (name, protocol, host, port, path, tag, icon, health_path, health_type, resource_type, resource_id, resource_node, created_at)
+			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	result, err := s.db.Exec(query, app.Name, app.Protocol, app.Host, app.Port, app.Path,
-		app.Tag, app.Icon, app.HealthPath, app.HealthType, app.CreatedAt)
+		app.Tag, app.Icon, app.HealthPath, app.HealthType, app.ResourceType, app.ResourceID, app.ResourceNode, app.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create app: %w", err)
 	}
@@ -203,14 +226,14 @@ func (s *Store) CreateApp(app *models.App) error {
 
 // GetApp récupère une application par ID
 func (s *Store) GetApp(id int) (*models.App, error) {
-	query := `SELECT id, name, protocol, host, port, path, tag, icon, health_path, health_type, created_at
+	query := `SELECT id, name, protocol, host, port, path, tag, icon, health_path, health_type, resource_type, resource_id, resource_node, created_at
 			  FROM apps WHERE id = ?`
 
 	row := s.db.QueryRow(query, id)
 
 	app := &models.App{}
 	err := row.Scan(&app.ID, &app.Name, &app.Protocol, &app.Host, &app.Port, &app.Path,
-		&app.Tag, &app.Icon, &app.HealthPath, &app.HealthType, &app.CreatedAt)
+		&app.Tag, &app.Icon, &app.HealthPath, &app.HealthType, &app.ResourceType, &app.ResourceID, &app.ResourceNode, &app.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app: %w", err)
 	}
@@ -220,7 +243,7 @@ func (s *Store) GetApp(id int) (*models.App, error) {
 
 // GetApps récupère toutes les applications
 func (s *Store) GetApps() ([]*models.App, error) {
-	query := `SELECT id, name, protocol, host, port, path, tag, icon, health_path, health_type, created_at
+	query := `SELECT id, name, protocol, host, port, path, tag, icon, health_path, health_type, resource_type, resource_id, resource_node, created_at
 			  FROM apps ORDER BY created_at DESC`
 
 	rows, err := s.db.Query(query)
@@ -233,7 +256,7 @@ func (s *Store) GetApps() ([]*models.App, error) {
 	for rows.Next() {
 		app := &models.App{}
 		err := rows.Scan(&app.ID, &app.Name, &app.Protocol, &app.Host, &app.Port, &app.Path,
-			&app.Tag, &app.Icon, &app.HealthPath, &app.HealthType, &app.CreatedAt)
+			&app.Tag, &app.Icon, &app.HealthPath, &app.HealthType, &app.ResourceType, &app.ResourceID, &app.ResourceNode, &app.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan app: %w", err)
 		}
@@ -246,10 +269,10 @@ func (s *Store) GetApps() ([]*models.App, error) {
 // UpdateApp met à jour une application
 func (s *Store) UpdateApp(id int, req models.CreateAppRequest) error {
 	query := `UPDATE apps SET name = ?, protocol = ?, host = ?, port = ?, path = ?,
-			  tag = ?, icon = ?, health_path = ?, health_type = ? WHERE id = ?`
+			  tag = ?, icon = ?, health_path = ?, health_type = ?, resource_type = ?, resource_id = ?, resource_node = ? WHERE id = ?`
 
 	_, err := s.db.Exec(query, req.Name, req.Protocol, req.Host, req.Port, req.Path,
-		req.Tag, req.Icon, req.HealthPath, req.HealthType, id)
+		req.Tag, req.Icon, req.HealthPath, req.HealthType, req.ResourceType, req.ResourceID, req.ResourceNode, id)
 	if err != nil {
 		return fmt.Errorf("failed to update app: %w", err)
 	}

@@ -93,7 +93,14 @@ export function VMs() {
           return {
           id: index + 1,
           name: vm.name || `VM-${vm.id}`,
-            status: vm.status === 'running' ? 'running' : vm.status === 'stopped' ? 'stopped' : vm.status === 'paused' ? 'paused' : 'stopped',
+            status: (() => {
+              const s = String(vm.status || '').toLowerCase();
+              if (s === 'running') return 'running';
+              if (s === 'stopped') return 'stopped';
+              // Proxmox peut retourner "paused" ou "suspended" pour les VMs en pause
+              if (s === 'paused' || s === 'suspended') return 'paused';
+              return 'stopped';
+            })(),
             vmid: vm.id || vm.vmid,
           node: vm.node || 'unknown',
             cpu_cores: maxcpu,
@@ -413,7 +420,7 @@ export function VMs() {
       }
     } catch (err: any) {
       console.error('Erreur démarrage VM:', err);
-      const errorMessage = err.message || 'Erreur de connexion à Proxmox';
+      const errorMessage = err?.message || err?.error || 'Erreur de connexion à Proxmox';
       error('Erreur', `Impossible de démarrer la VM ${vm.name}: ${errorMessage}`);
     }
   };
@@ -447,24 +454,27 @@ export function VMs() {
             }
           );
 
-          if (response.success) {
-            setVMs(prevVMs =>
-              prevVMs.map(v =>
-                v.id === vm.id
-                  ? { ...v, status: 'stopped' as const, uptime: 0, cpu_usage: 0, memory_usage: 0 }
-                  : v
-              )
-            );
-            success('Succès', `VM ${vm.name} en cours d'arrêt`);
-            setTimeout(() => {
-              refreshVMs();
-            }, 2000);
-          } else {
-            throw new Error(response.error || 'Erreur inconnue');
-          }
+      if (response.success) {
+        // Mettre à jour le statut localement immédiatement
+        setVMs(prevVMs =>
+          prevVMs.map(v =>
+            v.id === vm.id
+              ? { ...v, status: 'stopped' as const, uptime: 0, cpu_usage: 0, memory_usage: 0 }
+              : v
+          )
+        );
+        success('Succès', `VM ${vm.name} en cours d'arrêt`);
+        // Attendre plus longtemps pour que Proxmox mette à jour le statut
+        // Le backend attend déjà plusieurs secondes + le temps de la tâche
+        setTimeout(() => {
+          refreshVMs();
+        }, 8000); // Augmenter à 8 secondes pour laisser le temps à Proxmox
+      } else {
+        throw new Error(response.error || 'Erreur inconnue');
+      }
         } catch (err: any) {
           console.error('Erreur arrêt VM:', err);
-          const errorMessage = err.message || 'Erreur de connexion à Proxmox';
+          const errorMessage = err?.message || err?.error || 'Erreur de connexion à Proxmox';
           error('Erreur', `Impossible d'arrêter la VM ${vm.name}: ${errorMessage}`);
     }
       }
@@ -494,7 +504,10 @@ export function VMs() {
         }
       );
 
+      console.log('Réponse pause VM:', response);
+
       if (response.success) {
+        // Mettre à jour le statut localement immédiatement
         setVMs(prevVMs =>
           prevVMs.map(v =>
             v.id === vm.id
@@ -502,7 +515,55 @@ export function VMs() {
               : v
           )
         );
-        success('Succès', `VM ${vm.name} mise en pause`);
+        success('Succès', `VM ${vm.name} mise en pause (suspendue)`);
+        // Attendre plus longtemps pour que Proxmox mette à jour le statut
+        // Le backend attend déjà 3 secondes + le temps de la tâche, donc on attend encore un peu
+        setTimeout(() => {
+          refreshVMs();
+        }, 8000); // Augmenter à 8 secondes pour laisser le temps à Proxmox
+      } else {
+        const errorMsg = typeof response.error === 'string' ? response.error : JSON.stringify(response.error);
+        throw new Error(errorMsg || 'Erreur inconnue');
+      }
+    } catch (err: any) {
+      console.error('Erreur pause VM:', err);
+      const errorMessage = err?.message || err?.error || 'Erreur de connexion à Proxmox';
+      error('Erreur', `Impossible de mettre en pause la VM ${vm.name}: ${errorMessage}`);
+    }
+  };
+
+  const handleVMResume = async (vm: VM) => {
+    try {
+      const savedConfig = localStorage.getItem('proxmoxConfig');
+      if (!savedConfig) {
+        error('Erreur', 'Configuration Proxmox manquante. Veuillez configurer Proxmox dans les Paramètres.');
+        return;
+      }
+
+      const config = JSON.parse(savedConfig);
+      
+      console.log(`▶️ Reprise de la VM ${vm.name} (${vm.vmid}) sur ${vm.node}...`);
+      
+      const response = await apiPost<{ success: boolean; message?: string; error?: string }>(
+        '/api/v1/proxmox/vm/resume',
+        {
+          url: config.url,
+          username: config.username,
+          secret: config.secret,
+          node: vm.node,
+          vmid: vm.vmid
+        }
+      );
+
+      if (response.success) {
+        setVMs(prevVMs =>
+          prevVMs.map(v =>
+            v.id === vm.id
+              ? { ...v, status: 'running' as const }
+              : v
+          )
+        );
+        success('Succès', `VM ${vm.name} reprise`);
         setTimeout(() => {
           refreshVMs();
         }, 2000);
@@ -510,9 +571,9 @@ export function VMs() {
         throw new Error(response.error || 'Erreur inconnue');
       }
     } catch (err: any) {
-      console.error('Erreur pause VM:', err);
-      const errorMessage = err.message || 'Erreur de connexion à Proxmox';
-      error('Erreur', `Impossible de mettre en pause la VM ${vm.name}: ${errorMessage}`);
+      console.error('Erreur resume VM:', err);
+      const errorMessage = err?.message || err?.error || 'Erreur de connexion à Proxmox';
+      error('Erreur', `Impossible de reprendre la VM ${vm.name}: ${errorMessage}`);
     }
   };
 
@@ -562,7 +623,7 @@ export function VMs() {
           }
         } catch (err: any) {
           console.error('Erreur redémarrage VM:', err);
-          const errorMessage = err.message || 'Erreur de connexion à Proxmox';
+          const errorMessage = err?.message || err?.error || 'Erreur de connexion à Proxmox';
           error('Erreur', `Impossible de redémarrer la VM ${vm.name}: ${errorMessage}`);
     }
       }
@@ -1051,6 +1112,27 @@ export function VMs() {
                     >
                         <RotateCcw className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
                         <span className="whitespace-nowrap">Redémarrer</span>
+                    </Button>
+                  </>
+                ) : vm.status === 'paused' ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                        className="flex-1 min-w-[80px] text-xs px-2 py-2 flex items-center justify-center"
+                      onClick={() => handleVMResume(vm)}
+                    >
+                        <Play className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                        <span>Reprendre</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                        className="flex-1 min-w-[80px] text-xs px-2 py-2 flex items-center justify-center"
+                      onClick={() => handleVMStop(vm)}
+                    >
+                        <Square className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                        <span>Arrêter</span>
                     </Button>
                   </>
                 ) : (
