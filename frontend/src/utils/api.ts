@@ -37,7 +37,9 @@ export async function api<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Construire l'URL : si API_BASE_URL est vide, utiliser l'endpoint tel quel (proxy Vite)
+  // Sinon, utiliser API_BASE_URL + endpoint
+  const url = API_BASE_URL ? `${API_BASE_URL}${endpoint}` : endpoint;
 
   const config: RequestInit = {
     headers: {
@@ -55,7 +57,27 @@ export async function api<T = any>(
     if (error instanceof ApiError) {
       throw error;
     }
-    throw new ApiError(0, `Erreur réseau: ${error instanceof Error ? error.message : 'Inconnue'}`);
+    
+    // Améliorer les messages d'erreur pour les problèmes de connexion
+    let errorMessage = `Erreur réseau: ${error instanceof Error ? error.message : 'Inconnue'}`;
+    
+    if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED'))) {
+      // Détecter les erreurs de connexion refusée
+      const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+      
+      if (fullUrl.includes('localhost:5173') || fullUrl.includes('localhost:8080')) {
+        errorMessage = `Impossible de se connecter au serveur backend. Vérifiez que:
+- Le serveur backend est démarré sur le port 8080
+- Le proxy Vite est correctement configuré (vite.config.ts)
+- Aucun firewall ne bloque la connexion
+
+URL tentée: ${fullUrl}`;
+      } else {
+        errorMessage = `Impossible de se connecter au serveur. Vérifiez votre connexion réseau et que le serveur est accessible. URL tentée: ${fullUrl}`;
+      }
+    }
+    
+    throw new ApiError(0, errorMessage);
   }
 }
 
@@ -89,6 +111,9 @@ export interface App {
   icon?: string;
   health_path: string;
   health_type: string;
+  resource_type?: 'vm' | 'lxc' | 'docker';
+  resource_id?: string;
+  resource_node?: string;
   created_at: string;
 }
 
@@ -122,6 +147,9 @@ export interface CreateAppRequest {
   icon?: string;
   health_path: string;
   health_type: string;
+  resource_type?: 'vm' | 'lxc' | 'docker';
+  resource_id?: string;
+  resource_node?: string;
 }
 
 export interface NotifyTestRequest {

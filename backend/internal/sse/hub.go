@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"proxmox-dashboard/internal/models"
+	"nexboard/internal/models"
 )
 
 // Client représente une connexion SSE

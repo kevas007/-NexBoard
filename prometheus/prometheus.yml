@@ -13,7 +13,7 @@ global:
   
   # Label externe pour identifier cette instance Prometheus
   external_labels:
-    cluster: 'proxmox-dash'
+    cluster: 'nexboard'
     environment: 'production'
 
 # Configuration des alertes (optionnel)
@@ -58,11 +58,11 @@ scrape_configs:
   # Job pour les applications surveillées (via le dashboard)
   # Les applications seront configurées dynamiquement via l'interface
   # Note: En Docker, utilisez 'api:8080' (nom du service), en local utilisez 'localhost:8081'
-  - job_name: 'proxmox-dash-apps'
+  - job_name: 'nexboard-apps'
     static_configs:
       - targets: ['api:8080']  # Nom du service Docker (ou localhost:8081 en local)
         labels:
-          instance: 'proxmox-dash-api'
+          instance: 'nexboard-api'
           service: 'dashboard'
     metrics_path: '/api/v1/metrics'
     scrape_interval: 30s

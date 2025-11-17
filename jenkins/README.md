@@ -29,7 +29,7 @@ Ce guide explique comment configurer Jenkins pour automatiser le build, les test
 
 1. **Créer un nouveau job Pipeline** :
    - Jenkins → New Item → Pipeline
-   - Nom : `proxmox-dash-pipeline`
+   - Nom : `nexboard-pipeline`
 
 2. **Configuration** :
    - **Definition** : Pipeline script from SCM
@@ -47,7 +47,7 @@ Ce guide explique comment configurer Jenkins pour automatiser le build, les test
 
 1. **Créer un Multibranch Pipeline** :
    - Jenkins → New Item → Multibranch Pipeline
-   - Nom : `proxmox-dash-multibranch`
+   - Nom : `nexboard-multibranch`
 
 2. **Configuration** :
    - **Branch Sources** : Git
@@ -127,7 +127,7 @@ Si vous utilisez un registry Docker privé :
 
 1. Project → Settings → Webhooks
 2. Add webhook :
-   - URL : `http://votre-jenkins:8080/project/proxmox-dash-multibranch`
+   - URL : `http://votre-jenkins:8080/project/nexboard-multibranch`
    - Trigger : ✅ Push events, ✅ Merge request events
 
 ## 🎯 Workflow
@@ -156,7 +156,7 @@ Si vous utilisez un registry Docker privé :
 
 ### Consulter les builds
 
-- Jenkins → `proxmox-dash-multibranch` → Branches
+- Jenkins → `nexboard-multibranch` → Branches
 - Cliquez sur une branche pour voir les builds
 
 ### Logs

@@ -137,7 +137,7 @@ git checkout -b dev upstream/dev
 
 **Solution** :
 ```bash
-git remote add upstream https://github.com/kevas007/proxmox-dash.git
+git remote add upstream https://github.com/kevas007/NexBoard.git
 git fetch upstream
 ```
 

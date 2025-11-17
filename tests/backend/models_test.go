@@ -1,18 +1,19 @@
-package models
+package backend_test
 
 import (
+	"nexboard/internal/models"
 	"testing"
 )
 
 func TestApp_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		app     App
+		app     models.App
 		wantErr bool
 	}{
 		{
 			name: "valid app",
-			app: App{
+			app: models.App{
 				Name:       "Test App",
 				Protocol:   "https",
 				Host:       "example.com",
@@ -25,7 +26,7 @@ func TestApp_Validate(t *testing.T) {
 		},
 		{
 			name: "empty name",
-			app: App{
+			app: models.App{
 				Name:       "",
 				Protocol:   "https",
 				Host:       "example.com",
@@ -38,7 +39,7 @@ func TestApp_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid protocol",
-			app: App{
+			app: models.App{
 				Name:       "Test App",
 				Protocol:   "invalid",
 				Host:       "example.com",
@@ -51,7 +52,7 @@ func TestApp_Validate(t *testing.T) {
 		},
 		{
 			name: "empty host",
-			app: App{
+			app: models.App{
 				Name:       "Test App",
 				Protocol:   "https",
 				Host:       "",
@@ -64,7 +65,7 @@ func TestApp_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid port",
-			app: App{
+			app: models.App{
 				Name:       "Test App",
 				Protocol:   "https",
 				Host:       "example.com",
@@ -90,12 +91,12 @@ func TestApp_Validate(t *testing.T) {
 func TestAlert_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		alert   Alert
+		alert   models.Alert
 		wantErr bool
 	}{
 		{
 			name: "valid alert",
-			alert: Alert{
+			alert: models.Alert{
 				Source:   "test",
 				Severity: "high",
 				Title:    "Test Alert",
@@ -105,7 +106,7 @@ func TestAlert_Validate(t *testing.T) {
 		},
 		{
 			name: "empty title",
-			alert: Alert{
+			alert: models.Alert{
 				Source:   "test",
 				Severity: "high",
 				Title:    "",
@@ -115,7 +116,7 @@ func TestAlert_Validate(t *testing.T) {
 		},
 		{
 			name: "empty message",
-			alert: Alert{
+			alert: models.Alert{
 				Source:   "test",
 				Severity: "high",
 				Title:    "Test Alert",
@@ -125,7 +126,7 @@ func TestAlert_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid severity",
-			alert: Alert{
+			alert: models.Alert{
 				Source:   "test",
 				Severity: "invalid",
 				Title:    "Test Alert",
@@ -148,12 +149,12 @@ func TestAlert_Validate(t *testing.T) {
 func TestNotifySubscription_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		sub     NotifySubscription
+		sub     models.NotifySubscription
 		wantErr bool
 	}{
 		{
 			name: "valid email subscription",
-			sub: NotifySubscription{
+			sub: models.NotifySubscription{
 				Channel:  "email",
 				Endpoint: "test@example.com",
 				Enabled:  true,
@@ -162,7 +163,7 @@ func TestNotifySubscription_Validate(t *testing.T) {
 		},
 		{
 			name: "valid webhook subscription",
-			sub: NotifySubscription{
+			sub: models.NotifySubscription{
 				Channel:  "webhook",
 				Endpoint: "",
 				Enabled:  true,
@@ -171,7 +172,7 @@ func TestNotifySubscription_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid channel",
-			sub: NotifySubscription{
+			sub: models.NotifySubscription{
 				Channel:  "invalid",
 				Endpoint: "test@example.com",
 				Enabled:  true,
@@ -180,7 +181,7 @@ func TestNotifySubscription_Validate(t *testing.T) {
 		},
 		{
 			name: "empty endpoint",
-			sub: NotifySubscription{
+			sub: models.NotifySubscription{
 				Channel:  "email",
 				Endpoint: "",
 				Enabled:  true,
@@ -202,12 +203,12 @@ func TestNotifySubscription_Validate(t *testing.T) {
 func TestEmailQueue_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		email   EmailQueue
+		email   models.EmailQueue
 		wantErr bool
 	}{
 		{
 			name: "valid email",
-			email: EmailQueue{
+			email: models.EmailQueue{
 				ToAddr:   "test@example.com",
 				Subject:  "Test Subject",
 				BodyText: "Test Body",
@@ -217,7 +218,7 @@ func TestEmailQueue_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid email address",
-			email: EmailQueue{
+			email: models.EmailQueue{
 				ToAddr:   "invalid-email",
 				Subject:  "Test Subject",
 				BodyText: "Test Body",
@@ -227,7 +228,7 @@ func TestEmailQueue_Validate(t *testing.T) {
 		},
 		{
 			name: "empty subject",
-			email: EmailQueue{
+			email: models.EmailQueue{
 				ToAddr:   "test@example.com",
 				Subject:  "",
 				BodyText: "Test Body",
@@ -237,7 +238,7 @@ func TestEmailQueue_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid state",
-			email: EmailQueue{
+			email: models.EmailQueue{
 				ToAddr:   "test@example.com",
 				Subject:  "Test Subject",
 				BodyText: "Test Body",

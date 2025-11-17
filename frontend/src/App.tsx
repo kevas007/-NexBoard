@@ -95,7 +95,10 @@ function App() {
         const alertsData = await apiGet<Alert[]>('/api/v1/alerts?limit=20');
         setAlerts(alertsData || []);
       } catch (err) {
-        console.error('Failed to load alerts:', err);
+        // Ne logger l'erreur que si ce n'est pas une erreur de connexion (pour éviter le spam)
+        if (err instanceof Error && !err.message.includes('Impossible de se connecter')) {
+          console.error('Failed to load alerts:', err);
+        }
         // En cas d'erreur, initialiser avec un tableau vide
         setAlerts([]);
       }

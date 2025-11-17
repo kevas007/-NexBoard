@@ -17,7 +17,7 @@ Un dashboard moderne pour le monitoring de clusters Proxmox, conteneurs Docker e
 ## 🏗️ Architecture
 
 ```
-proxmox-dash/
+nexboard/
 ├── backend/              # API Go 1.23
 │   ├── cmd/              # Point d'entrée principal
 │   ├── internal/         # Code métier (non exportable)
@@ -83,8 +83,8 @@ Le projet inclut une configuration CI/CD complète avec Jenkins :
 
 1. **Cloner le projet**
 ```bash
-git clone https://github.com/kevas007/proxmox-dash.git
-cd proxmox-dash
+git clone https://github.com/kevas007/NexBoard.git
+cd nexboard
 ```
 
 **Note pour les contributeurs** : Si vous souhaitez contribuer au projet, veuillez :
@@ -286,8 +286,8 @@ Nous accueillons les contributions ! Voir notre [Guide de Contribution](CONTRIBU
 1. **Fork le projet** sur GitHub
 2. **Clone votre fork** :
    ```bash
-   git clone https://github.com/VOTRE-USERNAME/proxmox-dash.git
-   cd proxmox-dash
+   git clone https://github.com/VOTRE-USERNAME/NexBoard.git
+   cd nexboard
    ```
 3. **Créer une branche** :
    ```bash

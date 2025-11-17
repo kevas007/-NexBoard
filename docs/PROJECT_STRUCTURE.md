@@ -5,7 +5,7 @@ Ce document décrit la structure complète du projet et les conventions utilisé
 ## 📁 Structure Complète
 
 ```
-proxmox-dash/
+nexboard/
 ├── .github/                    # Configuration GitHub
 │   ├── workflows/              # GitHub Actions
 │   └── PULL_REQUEST_TEMPLATE.md
@@ -211,8 +211,8 @@ cd frontend && npm run test:e2e
 
 ### Images
 
-- **Backend** : `proxmox-dash-api`
-- **Frontend** : `proxmox-dash-web`
+- **Backend** : `nexboard-api`
+- **Frontend** : `nexboard-web`
 - **Tags** : `latest`, `dev`, `prod`, `{BUILD_NUMBER}`
 
 ### Compose Files

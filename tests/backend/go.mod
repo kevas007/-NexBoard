@@ -1,21 +1,23 @@
-module nexboard
+module nexboard/tests
 
 go 1.23
 
+replace nexboard => ../../backend
+
 require (
 	github.com/go-chi/chi/v5 v5.0.10
-	github.com/go-chi/cors v1.2.1
-	github.com/gorilla/websocket v1.5.3
-	golang.org/x/crypto v0.17.0
 	modernc.org/sqlite v1.27.0
+	nexboard v0.0.0-00010101000000-000000000000
 )
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/tools v0.0.0-20201124115921-2c860bdd6e78 // indirect

@@ -1,34 +1,35 @@
-package store
+package backend_test
 
 import (
 	"database/sql"
-	"proxmox-dashboard/internal/models"
+	"nexboard/internal/models"
+	"nexboard/internal/store"
 	"testing"
 	"time"
 
 	_ "modernc.org/sqlite"
 )
 
-func setupTestDB(t *testing.T) *Store {
+func setupTestDB(t *testing.T) *store.Store {
 	// Créer une base de données temporaire en mémoire
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
 
-	store := NewStore(db)
+	testStore := store.NewStore(db)
 
 	// Exécuter les migrations
-	if err := store.Migrate(); err != nil {
+	if err := testStore.Migrate(); err != nil {
 		t.Fatalf("Failed to migrate test database: %v", err)
 	}
 
-	return store
+	return testStore
 }
 
 func TestStore_CreateApp(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	app := &models.App{
 		Name:       "Test App",
@@ -41,7 +42,7 @@ func TestStore_CreateApp(t *testing.T) {
 		CreatedAt:  time.Now(),
 	}
 
-	err := store.CreateApp(app)
+	err := s.CreateApp(app)
 	if err != nil {
 		t.Fatalf("CreateApp() error = %v", err)
 	}
@@ -51,7 +52,7 @@ func TestStore_CreateApp(t *testing.T) {
 	}
 
 	// Vérifier que l'app a été créée
-	retrieved, err := store.GetApp(app.ID)
+	retrieved, err := s.GetApp(app.ID)
 	if err != nil {
 		t.Fatalf("GetApp() error = %v", err)
 	}
@@ -62,8 +63,8 @@ func TestStore_CreateApp(t *testing.T) {
 }
 
 func TestStore_GetApps(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	// Créer quelques apps de test
 	apps := []*models.App{
@@ -90,13 +91,13 @@ func TestStore_GetApps(t *testing.T) {
 	}
 
 	for _, app := range apps {
-		if err := store.CreateApp(app); err != nil {
+		if err := s.CreateApp(app); err != nil {
 			t.Fatalf("CreateApp() error = %v", err)
 		}
 	}
 
 	// Récupérer tous les apps
-	retrieved, err := store.GetApps()
+	retrieved, err := s.GetApps()
 	if err != nil {
 		t.Fatalf("GetApps() error = %v", err)
 	}
@@ -107,8 +108,8 @@ func TestStore_GetApps(t *testing.T) {
 }
 
 func TestStore_UpdateApp(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	// Créer un app
 	app := &models.App{
@@ -122,7 +123,7 @@ func TestStore_UpdateApp(t *testing.T) {
 		CreatedAt:  time.Now(),
 	}
 
-	if err := store.CreateApp(app); err != nil {
+	if err := s.CreateApp(app); err != nil {
 		t.Fatalf("CreateApp() error = %v", err)
 	}
 
@@ -137,13 +138,13 @@ func TestStore_UpdateApp(t *testing.T) {
 		HealthType: "http",
 	}
 
-	err := store.UpdateApp(app.ID, req)
+	err := s.UpdateApp(app.ID, req)
 	if err != nil {
 		t.Fatalf("UpdateApp() error = %v", err)
 	}
 
 	// Vérifier les modifications
-	retrieved, err := store.GetApp(app.ID)
+	retrieved, err := s.GetApp(app.ID)
 	if err != nil {
 		t.Fatalf("GetApp() error = %v", err)
 	}
@@ -158,8 +159,8 @@ func TestStore_UpdateApp(t *testing.T) {
 }
 
 func TestStore_DeleteApp(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	// Créer un app
 	app := &models.App{
@@ -173,26 +174,26 @@ func TestStore_DeleteApp(t *testing.T) {
 		CreatedAt:  time.Now(),
 	}
 
-	if err := store.CreateApp(app); err != nil {
+	if err := s.CreateApp(app); err != nil {
 		t.Fatalf("CreateApp() error = %v", err)
 	}
 
 	// Supprimer l'app
-	err := store.DeleteApp(app.ID)
+	err := s.DeleteApp(app.ID)
 	if err != nil {
 		t.Fatalf("DeleteApp() error = %v", err)
 	}
 
 	// Vérifier que l'app a été supprimé
-	_, err = store.GetApp(app.ID)
+	_, err = s.GetApp(app.ID)
 	if err == nil {
 		t.Error("Expected error when getting deleted app")
 	}
 }
 
 func TestStore_CreateAlert(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	// Créer un app d'abord
 	app := &models.App{
@@ -206,7 +207,7 @@ func TestStore_CreateAlert(t *testing.T) {
 		CreatedAt:  time.Now(),
 	}
 
-	if err := store.CreateApp(app); err != nil {
+	if err := s.CreateApp(app); err != nil {
 		t.Fatalf("CreateApp() error = %v", err)
 	}
 
@@ -220,7 +221,7 @@ func TestStore_CreateAlert(t *testing.T) {
 		Acknowledged: false,
 	}
 
-	err := store.CreateAlert(alert)
+	err := s.CreateAlert(alert)
 	if err != nil {
 		t.Fatalf("CreateAlert() error = %v", err)
 	}
@@ -231,8 +232,8 @@ func TestStore_CreateAlert(t *testing.T) {
 }
 
 func TestStore_GetAlerts(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	// Créer un app
 	app := &models.App{
@@ -246,7 +247,7 @@ func TestStore_GetAlerts(t *testing.T) {
 		CreatedAt:  time.Now(),
 	}
 
-	if err := store.CreateApp(app); err != nil {
+	if err := s.CreateApp(app); err != nil {
 		t.Fatalf("CreateApp() error = %v", err)
 	}
 
@@ -271,13 +272,13 @@ func TestStore_GetAlerts(t *testing.T) {
 	}
 
 	for _, alert := range alerts {
-		if err := store.CreateAlert(alert); err != nil {
+		if err := s.CreateAlert(alert); err != nil {
 			t.Fatalf("CreateAlert() error = %v", err)
 		}
 	}
 
 	// Récupérer les alertes
-	retrieved, err := store.GetAlerts()
+	retrieved, err := s.GetAlerts()
 	if err != nil {
 		t.Fatalf("GetAlerts() error = %v", err)
 	}
@@ -288,8 +289,8 @@ func TestStore_GetAlerts(t *testing.T) {
 }
 
 func TestStore_CreateNotificationSubscription(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	sub := &models.NotifySubscription{
 		Channel:   "email",
@@ -298,7 +299,7 @@ func TestStore_CreateNotificationSubscription(t *testing.T) {
 		CreatedAt: time.Now(),
 	}
 
-	err := store.CreateNotificationSubscription(sub)
+	err := s.CreateNotificationSubscription(sub)
 	if err != nil {
 		t.Fatalf("CreateNotificationSubscription() error = %v", err)
 	}
@@ -309,8 +310,8 @@ func TestStore_CreateNotificationSubscription(t *testing.T) {
 }
 
 func TestStore_GetNotificationSubscriptions(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	// Créer quelques abonnements
 	subs := []*models.NotifySubscription{
@@ -329,13 +330,13 @@ func TestStore_GetNotificationSubscriptions(t *testing.T) {
 	}
 
 	for _, sub := range subs {
-		if err := store.CreateNotificationSubscription(sub); err != nil {
+		if err := s.CreateNotificationSubscription(sub); err != nil {
 			t.Fatalf("CreateNotificationSubscription() error = %v", err)
 		}
 	}
 
 	// Récupérer les abonnements
-	retrieved, err := store.GetNotificationSubscriptions()
+	retrieved, err := s.GetNotificationSubscriptions()
 	if err != nil {
 		t.Fatalf("GetNotificationSubscriptions() error = %v", err)
 	}
@@ -346,8 +347,8 @@ func TestStore_GetNotificationSubscriptions(t *testing.T) {
 }
 
 func TestStore_CreateEmailQueue(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	email := &models.EmailQueue{
 		ToAddr:    "test@example.com",
@@ -357,7 +358,7 @@ func TestStore_CreateEmailQueue(t *testing.T) {
 		CreatedAt: time.Now(),
 	}
 
-	err := store.CreateEmailQueue(email)
+	err := s.CreateEmailQueue(email)
 	if err != nil {
 		t.Fatalf("CreateEmailQueue() error = %v", err)
 	}
@@ -368,8 +369,8 @@ func TestStore_CreateEmailQueue(t *testing.T) {
 }
 
 func TestStore_GetPendingEmails(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	// Créer quelques emails
 	emails := []*models.EmailQueue{
@@ -390,13 +391,13 @@ func TestStore_GetPendingEmails(t *testing.T) {
 	}
 
 	for _, email := range emails {
-		if err := store.CreateEmailQueue(email); err != nil {
+		if err := s.CreateEmailQueue(email); err != nil {
 			t.Fatalf("CreateEmailQueue() error = %v", err)
 		}
 	}
 
 	// Récupérer les emails en attente
-	pending, err := store.GetPendingEmails()
+	pending, err := s.GetPendingEmails()
 	if err != nil {
 		t.Fatalf("GetPendingEmails() error = %v", err)
 	}
@@ -407,8 +408,8 @@ func TestStore_GetPendingEmails(t *testing.T) {
 }
 
 func TestStore_UpdateEmailStatus(t *testing.T) {
-	store := setupTestDB(t)
-	defer store.Close()
+	s := setupTestDB(t)
+	defer s.Close()
 
 	// Créer un email
 	email := &models.EmailQueue{
@@ -419,23 +420,227 @@ func TestStore_UpdateEmailStatus(t *testing.T) {
 		CreatedAt: time.Now(),
 	}
 
-	if err := store.CreateEmailQueue(email); err != nil {
+	if err := s.CreateEmailQueue(email); err != nil {
 		t.Fatalf("CreateEmailQueue() error = %v", err)
 	}
 
 	// Mettre à jour le statut
-	err := store.UpdateEmailStatus(email.ID, "sent")
+	err := s.UpdateEmailStatus(email.ID, "sent")
 	if err != nil {
 		t.Fatalf("UpdateEmailStatus() error = %v", err)
 	}
 
 	// Vérifier le statut
-	updated, err := store.GetEmailQueue(email.ID)
+	updated, err := s.GetEmailQueue(email.ID)
 	if err != nil {
 		t.Fatalf("GetEmailQueue() error = %v", err)
 	}
 
 	if updated.State != "sent" {
 		t.Errorf("Expected state 'sent', got %s", updated.State)
+	}
+}
+
+func TestStore_AcknowledgeAlert(t *testing.T) {
+	s := setupTestDB(t)
+	defer s.Close()
+
+	// Créer une alerte
+	alert := &models.Alert{
+		Source:       "test",
+		Severity:     "high",
+		Title:        "Service Down",
+		Message:      "Service is down",
+		CreatedAt:    time.Now(),
+		Acknowledged: false,
+	}
+
+	if err := s.CreateAlert(alert); err != nil {
+		t.Fatalf("CreateAlert() error = %v", err)
+	}
+
+	// Acquitter l'alerte
+	err := s.AcknowledgeAlert(alert.ID)
+	if err != nil {
+		t.Fatalf("AcknowledgeAlert() error = %v", err)
+	}
+
+	// Vérifier que l'alerte est acquittée
+	alerts, err := s.GetAlerts()
+	if err != nil {
+		t.Fatalf("GetAlerts() error = %v", err)
+	}
+
+	found := false
+	for _, a := range alerts {
+		if a.ID == alert.ID {
+			if !a.Acknowledged {
+				t.Error("Expected alert to be acknowledged")
+			}
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("Alert not found after acknowledgment")
+	}
+}
+
+func TestStore_AcknowledgeAllAlerts(t *testing.T) {
+	s := setupTestDB(t)
+	defer s.Close()
+
+	// Créer plusieurs alertes
+	alerts := []*models.Alert{
+		{
+			Source:       "test",
+			Severity:     "high",
+			Title:        "Alert 1",
+			Message:      "Message 1",
+			CreatedAt:    time.Now(),
+			Acknowledged: false,
+		},
+		{
+			Source:       "test",
+			Severity:     "medium",
+			Title:        "Alert 2",
+			Message:      "Message 2",
+			CreatedAt:    time.Now(),
+			Acknowledged: false,
+		},
+	}
+
+	for _, alert := range alerts {
+		if err := s.CreateAlert(alert); err != nil {
+			t.Fatalf("CreateAlert() error = %v", err)
+		}
+	}
+
+	// Acquitter toutes les alertes
+	err := s.AcknowledgeAllAlerts()
+	if err != nil {
+		t.Fatalf("AcknowledgeAllAlerts() error = %v", err)
+	}
+
+	// Vérifier que toutes les alertes sont acquittées
+	retrieved, err := s.GetAlerts()
+	if err != nil {
+		t.Fatalf("GetAlerts() error = %v", err)
+	}
+
+	for _, alert := range retrieved {
+		if !alert.Acknowledged {
+			t.Errorf("Expected all alerts to be acknowledged, but alert %d is not", alert.ID)
+		}
+	}
+}
+
+func TestStore_GetEmailQueue(t *testing.T) {
+	s := setupTestDB(t)
+	defer s.Close()
+
+	// Créer un email
+	email := &models.EmailQueue{
+		ToAddr:    "test@example.com",
+		Subject:   "Test Subject",
+		BodyText:  "Test Body",
+		State:     "pending",
+		CreatedAt: time.Now(),
+	}
+
+	if err := s.CreateEmailQueue(email); err != nil {
+		t.Fatalf("CreateEmailQueue() error = %v", err)
+	}
+
+	// Récupérer l'email
+	retrieved, err := s.GetEmailQueue(email.ID)
+	if err != nil {
+		t.Fatalf("GetEmailQueue() error = %v", err)
+	}
+
+	if retrieved.ToAddr != email.ToAddr {
+		t.Errorf("Expected ToAddr %s, got %s", email.ToAddr, retrieved.ToAddr)
+	}
+
+	if retrieved.Subject != email.Subject {
+		t.Errorf("Expected Subject %s, got %s", email.Subject, retrieved.Subject)
+	}
+}
+
+func TestStore_MarkEmailError(t *testing.T) {
+	s := setupTestDB(t)
+	defer s.Close()
+
+	// Créer un email
+	email := &models.EmailQueue{
+		ToAddr:    "test@example.com",
+		Subject:   "Test Subject",
+		BodyText:  "Test Body",
+		State:     "pending",
+		CreatedAt: time.Now(),
+	}
+
+	if err := s.CreateEmailQueue(email); err != nil {
+		t.Fatalf("CreateEmailQueue() error = %v", err)
+	}
+
+	// Marquer l'email comme erreur
+	errorMsg := "Connection timeout"
+	err := s.MarkEmailError(email.ID, errorMsg)
+	if err != nil {
+		t.Fatalf("MarkEmailError() error = %v", err)
+	}
+
+	// Vérifier le statut
+	updated, err := s.GetEmailQueue(email.ID)
+	if err != nil {
+		t.Fatalf("GetEmailQueue() error = %v", err)
+	}
+
+	if updated.State != "error" {
+		t.Errorf("Expected state 'error', got %s", updated.State)
+	}
+
+	if updated.LastError == nil || *updated.LastError != errorMsg {
+		t.Errorf("Expected LastError %s, got %v", errorMsg, updated.LastError)
+	}
+}
+
+func TestStore_MarkEmailSent(t *testing.T) {
+	s := setupTestDB(t)
+	defer s.Close()
+
+	// Créer un email
+	email := &models.EmailQueue{
+		ToAddr:    "test@example.com",
+		Subject:   "Test Subject",
+		BodyText:  "Test Body",
+		State:     "pending",
+		CreatedAt: time.Now(),
+	}
+
+	if err := s.CreateEmailQueue(email); err != nil {
+		t.Fatalf("CreateEmailQueue() error = %v", err)
+	}
+
+	// Marquer l'email comme envoyé
+	err := s.MarkEmailSent(email.ID)
+	if err != nil {
+		t.Fatalf("MarkEmailSent() error = %v", err)
+	}
+
+	// Vérifier le statut
+	updated, err := s.GetEmailQueue(email.ID)
+	if err != nil {
+		t.Fatalf("GetEmailQueue() error = %v", err)
+	}
+
+	if updated.State != "sent" {
+		t.Errorf("Expected state 'sent', got %s", updated.State)
+	}
+
+	if updated.SentAt == nil {
+		t.Error("Expected SentAt to be set")
 	}
 }

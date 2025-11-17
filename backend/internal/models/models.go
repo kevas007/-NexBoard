@@ -7,17 +7,20 @@ import (
 
 // App représente une application monitorée
 type App struct {
-	ID         int       `json:"id" db:"id"`
-	Name       string    `json:"name" db:"name"`
-	Protocol   string    `json:"protocol" db:"protocol"`
-	Host       string    `json:"host" db:"host"`
-	Port       int       `json:"port" db:"port"`
-	Path       string    `json:"path" db:"path"`
-	Tag        *string   `json:"tag" db:"tag"`
-	Icon       *string   `json:"icon" db:"icon"`
-	HealthPath string    `json:"health_path" db:"health_path"`
-	HealthType string    `json:"health_type" db:"health_type"`
-	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	ID          int       `json:"id" db:"id"`
+	Name        string    `json:"name" db:"name"`
+	Protocol    string    `json:"protocol" db:"protocol"`
+	Host        string    `json:"host" db:"host"`
+	Port        int       `json:"port" db:"port"`
+	Path        string    `json:"path" db:"path"`
+	Tag         *string   `json:"tag" db:"tag"`
+	Icon        *string   `json:"icon" db:"icon"`
+	HealthPath  string    `json:"health_path" db:"health_path"`
+	HealthType  string    `json:"health_type" db:"health_type"`
+	ResourceType *string  `json:"resource_type,omitempty" db:"resource_type"` // 'vm' | 'lxc' | 'docker'
+	ResourceID   *string  `json:"resource_id,omitempty" db:"resource_id"`     // ID de la ressource
+	ResourceNode *string  `json:"resource_node,omitempty" db:"resource_node"` // Nom du nœud (pour VM/LXC)
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
 // Alert représente une alerte système
@@ -65,15 +68,18 @@ type HealthStatus struct {
 
 // CreateAppRequest représente une requête de création d'app
 type CreateAppRequest struct {
-	Name       string  `json:"name"`
-	Protocol   string  `json:"protocol"`
-	Host       string  `json:"host"`
-	Port       int     `json:"port"`
-	Path       string  `json:"path"`
-	Tag        *string `json:"tag"`
-	Icon       *string `json:"icon"`
-	HealthPath string  `json:"health_path"`
-	HealthType string  `json:"health_type"`
+	Name        string  `json:"name"`
+	Protocol    string  `json:"protocol"`
+	Host        string  `json:"host"`
+	Port        int     `json:"port"`
+	Path        string  `json:"path"`
+	Tag         *string `json:"tag"`
+	Icon        *string `json:"icon"`
+	HealthPath  string  `json:"health_path"`
+	HealthType  string  `json:"health_type"`
+	ResourceType *string `json:"resource_type,omitempty"` // 'vm' | 'lxc' | 'docker'
+	ResourceID   *string `json:"resource_id,omitempty"`     // ID de la ressource
+	ResourceNode *string `json:"resource_node,omitempty"` // Nom du nœud (pour VM/LXC)
 }
 
 // CreateAlertRequest représente une requête de création d'alerte

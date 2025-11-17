@@ -91,7 +91,7 @@ frontend/
 ## 📋 Structure Finale Recommandée
 
 ```
-proxmox-dash/
+nexboard/
 ├── .github/              # Config GitHub (workflows, templates)
 ├── .gitlab/              # Config GitLab (templates)
 ├── backend/              # Backend Go

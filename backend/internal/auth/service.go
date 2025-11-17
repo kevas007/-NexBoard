@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"proxmox-dashboard/internal/models"
+	"nexboard/internal/models"
 
 	"golang.org/x/crypto/bcrypt"
 )

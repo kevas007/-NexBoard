@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"proxmox-dashboard/internal/models"
-	"proxmox-dashboard/internal/store"
+	"nexboard/internal/models"
+	"nexboard/internal/store"
 )
 
 // AppService gère la logique métier des applications

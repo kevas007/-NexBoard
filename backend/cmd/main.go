@@ -6,12 +6,12 @@ import (
 	"log"
 	"net/http"
 
-	"proxmox-dashboard/internal/config"
-	"proxmox-dashboard/internal/handlers"
-	"proxmox-dashboard/internal/routes"
-	"proxmox-dashboard/internal/seeders"
-	"proxmox-dashboard/internal/sse"
-	"proxmox-dashboard/internal/store"
+	"nexboard/internal/config"
+	"nexboard/internal/handlers"
+	"nexboard/internal/routes"
+	"nexboard/internal/seeders"
+	"nexboard/internal/sse"
+	"nexboard/internal/store"
 
 	_ "modernc.org/sqlite"
 )

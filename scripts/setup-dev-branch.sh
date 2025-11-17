@@ -16,7 +16,7 @@ fi
 # Vérifier si le remote upstream existe
 if ! git remote | grep -q upstream; then
     echo "➕ Ajout du remote upstream..."
-    git remote add upstream https://github.com/kevas007/proxmox-dash.git
+    git remote add upstream https://github.com/kevas007/NexBoard.git
     echo "✅ Remote upstream ajouté"
 else
     echo "✅ Remote upstream existe déjà"
