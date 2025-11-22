@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"nexboard/internal/models"
+	"proxmox-dashboard/internal/models"
 
 	_ "modernc.org/sqlite"
 )

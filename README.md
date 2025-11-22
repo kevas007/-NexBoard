@@ -8,11 +8,15 @@ Un dashboard moderne pour le monitoring de clusters Proxmox, conteneurs Docker e
 
 - **Dashboard moderne** : Interface React avec Tailwind CSS, thème sombre/clair
 - **Monitoring multi-services** : Proxmox (VMs, LXC), Docker, Applications personnalisées
+- **Gestion des VMs Proxmox** : Contrôle complet (démarrer, arrêter, pause, reprise, redémarrer)
+- **Liaison applications-ressources** : Lien automatique des applications aux VMs, LXC ou conteneurs Docker
+- **Filtrage avancé** : Filtrage par type de ressource avec indicateurs visuels (bordures colorées, badges)
 - **Notifications temps réel** : Server-Sent Events (SSE) pour les alertes instantanées
 - **Système d'email** : Notifications SMTP avec worker en arrière-plan
 - **Base de données SQLite** : Stockage local sans CGO, migrations automatiques
 - **API REST complète** : Backend Go avec chi router
 - **Docker Compose** : Déploiement simple avec MailHog pour les tests
+- **Environnements dev/prod** : Système de seeders pour développement, base vierge en production
 
 ## 🏗️ Architecture
 
@@ -79,6 +83,7 @@ Le projet inclut une configuration CI/CD complète avec Jenkins :
 
 - Docker et Docker Compose
 - Git
+- Accès réseau à votre serveur Proxmox (pour le monitoring)
 
 ### Démarrage rapide
 
@@ -98,15 +103,43 @@ cd NexBoard
 mkdir -p data
 ```
 
-3. **Démarrer les services**
+3. **Configurer l'environnement** (optionnel)
 ```bash
-docker compose up -d
+# Copier le fichier d'exemple
+cp env.example config.env
+
+# Éditer config.env pour configurer :
+# - SMTP (production)
+# - Tokens de sécurité
+# - Variables d'environnement (ENV=dev pour développement)
 ```
 
-4. **Accéder aux interfaces**
+4. **Démarrer les services**
+```bash
+# Développement
+docker compose -f docker-compose.dev.yml up -d
+
+# Production
+docker compose -f docker-compose.prod.yml up -d
+```
+
+5. **Accéder aux interfaces**
 - Dashboard : http://localhost:5173
-- API : http://localhost:8080
+- API : http://localhost:8081
 - MailHog (emails de test) : http://localhost:8025
+
+### Configuration Proxmox
+
+Pour utiliser les fonctionnalités de monitoring Proxmox :
+
+1. **Accéder aux Paramètres** dans le dashboard
+2. **Configurer la connexion Proxmox** :
+   - URL : `https://votre-serveur-proxmox:8006`
+   - Username : Votre utilisateur Proxmox ou token API
+   - Secret : Votre mot de passe ou secret du token API
+   - Node : Le nom du nœud (optionnel)
+
+**Note réseau Docker** : Si Proxmox est sur la même machine que Docker, utilisez `host.docker.internal` au lieu de l'IP locale dans l'URL Proxmox. La configuration Docker inclut déjà `extra_hosts` pour permettre l'accès au réseau de l'hôte.
 
 ## 📧 Configuration des emails
 
@@ -146,12 +179,20 @@ curl -X POST http://localhost:8080/api/notify/test \
 
 ### Applications
 - `GET /api/apps` - Liste des applications
-- `POST /api/apps` - Créer une application
+- `POST /api/apps` - Créer une application (avec liaison optionnelle à VM/LXC/Docker)
 - `PUT /api/apps/{id}` - Modifier une application
 - `DELETE /api/apps/{id}` - Supprimer une application
 
+### Proxmox
+- `POST /api/v1/proxmox/fetch-vms` - Récupérer les VMs depuis Proxmox
+- `POST /api/v1/proxmox/fetch-lxc` - Récupérer les conteneurs LXC
+- `POST /api/v1/proxmox/fetch-docker` - Récupérer les conteneurs Docker
+- `POST /api/v1/proxmox/vm/{action}` - Actions sur les VMs (start, stop, pause, resume, restart)
+- `POST /api/v1/proxmox/vm/console` - Obtenir l'URL de la console VNC (dev uniquement)
+- `POST /api/v1/proxmox/vm/config` - Obtenir l'URL de configuration (dev uniquement)
+
 ### Health Checks
-- `GET /api/health/http?url=...` - Vérification HTTP
+- `GET /api/health/http?url=...` - Vérification HTTP avec messages d'erreur détaillés
 - `GET /api/health/tcp?host=...&port=...` - Vérification TCP
 
 ### Alertes
@@ -240,10 +281,25 @@ cd frontend && npm run test:ui
 
 Les migrations SQLite s'exécutent automatiquement au démarrage. Structure :
 
-- `apps` - Applications monitorées
+- `apps` - Applications monitorées (avec liaison optionnelle aux ressources Proxmox)
+  - `resource_type` : Type de ressource liée ('vm', 'lxc', 'docker')
+  - `resource_id` : ID de la ressource
+  - `resource_node` : Nom du nœud (pour VM/LXC)
 - `alerts` - Système d'alertes
 - `notify_subscriptions` - Abonnements aux notifications
 - `email_queue` - File d'attente des emails
+
+### Système de seeders (Développement)
+
+En mode développement (`ENV=dev`), des données de test sont automatiquement chargées :
+- **5 utilisateurs** de test (admin, user, viewer, ops, guest)
+- **13 applications** de test (Proxmox, Portainer, Grafana, etc.)
+- **12 alertes** de test avec différents niveaux de sévérité
+- **Abonnements** et **emails** de test
+
+En production (`ENV=production`), aucune donnée de test n'est chargée. La base reste vierge.
+
+📚 **Documentation complète** : [backend/internal/seeders/README.md](backend/internal/seeders/README.md)
 
 ## 🚦 Monitoring et santé
 
@@ -308,9 +364,29 @@ docker compose --env-file config.prod.env up -d
 
 Voir [SECURITY.md](SECURITY.md) pour le guide complet.
 
+## ✨ Fonctionnalités récentes
+
+### Gestion des VMs Proxmox
+- **Contrôle complet** : Démarrer, arrêter, mettre en pause, reprendre, redémarrer
+- **Détection automatique** : Statut des VMs synchronisé avec Proxmox
+- **Gestion d'erreurs améliorée** : Messages d'erreur détaillés pour diagnostiquer les problèmes de connexion
+
+### Liaison applications-ressources
+- **Détection automatique** : Les applications peuvent être automatiquement liées aux VMs, LXC ou conteneurs Docker basés sur l'IP
+- **Filtrage par type** : Filtrez les applications par type de ressource (VM, LXC, Docker, Aucune)
+- **Indicateurs visuels** : Bordures colorées et badges pour identifier rapidement le type de ressource liée
+
+### Améliorations réseau Docker
+- **Accès réseau amélioré** : Configuration `extra_hosts` pour permettre au backend d'accéder à Proxmox
+- **Support host.docker.internal** : Utilisation recommandée si Proxmox est sur la même machine
+
+### Interface utilisateur
+- **Boutons conditionnels** : Les boutons Console et Config sont masqués en production, visibles uniquement en développement
+- **Messages d'erreur améliorés** : Messages plus clairs avec suggestions de résolution
+
 ## 📈 Roadmap
 
-- **v1.1** : Intégration API Proxmox complète
+- **v1.1** ✅ : Intégration API Proxmox complète (terminé)
 - **v1.2** : Support Docker Engine/Portainer
 - **v1.3** : RBAC et authentification
 - **v1.4** : Webhooks Slack/Discord/Teams

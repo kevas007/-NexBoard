@@ -16,6 +16,9 @@ services:
       - go-mod-cache:/go/pkg/mod
     ports:
       - "8081:8080"
+    # Permettre l'accès au réseau de l'hôte pour se connecter à Proxmox
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - nexboard-network
     healthcheck:
