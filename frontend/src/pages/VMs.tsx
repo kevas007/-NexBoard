@@ -93,14 +93,9 @@ export function VMs() {
           return {
           id: index + 1,
           name: vm.name || `VM-${vm.id}`,
-            status: (() => {
-              const s = String(vm.status || '').toLowerCase();
-              if (s === 'running') return 'running';
-              if (s === 'stopped') return 'stopped';
-              // Proxmox peut retourner "paused" ou "suspended" pour les VMs en pause
-              if (s === 'paused' || s === 'suspended') return 'paused';
-              return 'stopped';
-            })(),
+            status: vm.status === 'running' ? 'running' : 
+                    vm.status === 'stopped' ? 'stopped' : 
+                    vm.status === 'paused' || vm.status === 'suspended' ? 'paused' : 'stopped',
             vmid: vm.id || vm.vmid,
           node: vm.node || 'unknown',
             cpu_cores: maxcpu,
@@ -455,7 +450,6 @@ export function VMs() {
           );
 
       if (response.success) {
-        // Mettre à jour le statut localement immédiatement
         setVMs(prevVMs =>
           prevVMs.map(v =>
             v.id === vm.id
@@ -464,11 +458,9 @@ export function VMs() {
           )
         );
         success('Succès', `VM ${vm.name} en cours d'arrêt`);
-        // Attendre plus longtemps pour que Proxmox mette à jour le statut
-        // Le backend attend déjà plusieurs secondes + le temps de la tâche
         setTimeout(() => {
           refreshVMs();
-        }, 8000); // Augmenter à 8 secondes pour laisser le temps à Proxmox
+        }, 2000);
       } else {
         throw new Error(response.error || 'Erreur inconnue');
       }
@@ -507,7 +499,7 @@ export function VMs() {
       console.log('Réponse pause VM:', response);
 
       if (response.success) {
-        // Mettre à jour le statut localement immédiatement
+        // Mettre à jour le statut localement
         setVMs(prevVMs =>
           prevVMs.map(v =>
             v.id === vm.id
@@ -516,11 +508,11 @@ export function VMs() {
           )
         );
         success('Succès', `VM ${vm.name} mise en pause (suspendue)`);
-        // Attendre plus longtemps pour que Proxmox mette à jour le statut
-        // Le backend attend déjà 3 secondes + le temps de la tâche, donc on attend encore un peu
+        // Attendre un peu plus longtemps car suspend peut prendre du temps
+        // Proxmox peut prendre plusieurs secondes pour suspendre la VM
         setTimeout(() => {
           refreshVMs();
-        }, 8000); // Augmenter à 8 secondes pour laisser le temps à Proxmox
+        }, 5000);
       } else {
         const errorMsg = typeof response.error === 'string' ? response.error : JSON.stringify(response.error);
         throw new Error(errorMsg || 'Erreur inconnue');
@@ -943,12 +935,15 @@ export function VMs() {
                             onClick={() => setShowMoreMenu(null)}
                           />
                           <div className="absolute right-0 top-8 z-20 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 py-1">
-                            <button
-                              onClick={() => handleVMAction(vm, 'console')}
-                              className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-                            >
-                              Console VNC
-                            </button>
+                            {/* Bouton Console uniquement en développement */}
+                            {(!import.meta.env.PROD && import.meta.env.MODE !== 'production') && (
+                              <button
+                                onClick={() => handleVMAction(vm, 'console')}
+                                className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                              >
+                                Console VNC
+                              </button>
+                            )}
                             <button
                               onClick={() => handleVMAction(vm, 'snapshot')}
                               className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
@@ -1146,24 +1141,29 @@ export function VMs() {
                       <span>Démarrer</span>
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                    className="flex-1 min-w-[80px] text-xs px-2 py-2 flex items-center justify-center"
-                    onClick={() => handleVMConsole(vm)}
-                  >
-                    <Monitor className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                    <span>Console</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 min-w-[80px] text-xs px-2 py-2 flex items-center justify-center"
-                  onClick={() => handleVMConfig(vm)}
-                >
-                    <Settings className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                    <span>Config</span>
-                </Button>
+                {/* Boutons Console et Config uniquement en développement */}
+                {(!import.meta.env.PROD && import.meta.env.MODE !== 'production') && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 min-w-[80px] text-xs px-2 py-2 flex items-center justify-center"
+                      onClick={() => handleVMConsole(vm)}
+                    >
+                      <Monitor className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                      <span>Console</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 min-w-[80px] text-xs px-2 py-2 flex items-center justify-center"
+                      onClick={() => handleVMConfig(vm)}
+                    >
+                      <Settings className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                      <span>Config</span>
+                    </Button>
+                  </>
+                )}
                 </div>
               </div>
 
